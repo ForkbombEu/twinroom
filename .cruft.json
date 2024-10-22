@@ -1,0 +1,18 @@
+{
+  "template": "https://github.com/dyne/starters",
+  "commit": "81ce066c443209cefebaea185d1a4ce0c36c9f75",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "gemini",
+      "project_slug": "gemini",
+      "project_description": "Slangroom double sided executor",
+      "full_name": "Puria Nafisi Azizi",
+      "email": "puria@dyne.org",
+      "repo": "github.com/forkbombeu/gemini",
+      "go_version": "1.23",
+      "_template": "https://github.com/dyne/starters"
+    }
+  },
+  "directory": "go"
+}
