@@ -1,0 +1,18 @@
+{
+  "template": "https://github.com/dyne/starters",
+  "commit": "81ce066c443209cefebaea185d1a4ce0c36c9f75",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "fouter",
+      "project_slug": "fouter",
+      "project_description": "File routing in golang",
+      "full_name": "Puria Nafisi Azizi",
+      "email": "puria@dyne.org",
+      "repo": "github.com/dyne/fouter",
+      "go_version": "1.22",
+      "_template": "https://github.com/dyne/starters"
+    }
+  },
+  "directory": "go"
+}
