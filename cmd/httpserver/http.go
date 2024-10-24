@@ -1,4 +1,4 @@
-package cmd
+package httpserver
 
 import (
 	"encoding/json"
@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// listSlangFilesHandler returns an HTTP handler that lists available slangroom files in the provided directories.
+// It generates an HTML page displaying the slangroom files for each directory.
 func listSlangFilesHandler(slangFiles map[string][]string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
@@ -33,6 +35,8 @@ func listSlangFilesHandler(slangFiles map[string][]string) http.HandlerFunc {
 	}
 }
 
+// slangFilePageHandler returns an HTTP handler that displays the contents of a single slangroom file.
+// It generates an HTML page showing the content of the file along with a button to execute it.
 func slangFilePageHandler(file fouter.SlangFile) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		name := strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))
@@ -47,6 +51,8 @@ func slangFilePageHandler(file fouter.SlangFile) http.HandlerFunc {
 	}
 }
 
+// executeSlangFileHandler returns an HTTP handler that executes a slangroom file via a POST request.
+// The handler responds with a JSON output of the result or an error if the execution fails.
 func executeSlangFileHandler(file fouter.SlangFile) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -71,7 +77,8 @@ func executeSlangFileHandler(file fouter.SlangFile) http.HandlerFunc {
 	}
 }
 
-func startHTTPServer(folder string, url string) error {
+// startHTTPServer starts an HTTP server on port 3000 to serve slangroom files from the specified folder.
+func StartHTTPServer(folder string, url string) error {
 	r := mux.NewRouter()
 	slangFiles := make(map[string][]string)
 
@@ -102,6 +109,7 @@ func startHTTPServer(folder string, url string) error {
 	return nil
 }
 
+// GetSlangFileURL returns the URL for accessing a slangroom file given its folder and file name.
 func GetSlangFileURL(folder string, fileName string) string {
 	relativePath := strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	slangFileURL := fmt.Sprintf("http://localhost:3000/slang/%s", relativePath)

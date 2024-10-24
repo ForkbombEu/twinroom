@@ -25,5 +25,6 @@
 
 !Makefile
 
+!examples/*
 # ...even if they are in subdirectories
 !*/

@@ -1,9 +1,10 @@
-package cmd
+package httpserver
 
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ForkbombEu/fouter"
@@ -137,4 +138,9 @@ func TestGetSlangFileURL(t *testing.T) {
 	if result != expectedURL {
 		t.Errorf("Expected URL to be %v, got %v", expectedURL, result)
 	}
+}
+
+// Helper function to check if a substring is in a string
+func contains(str, substr string) bool {
+	return len(str) >= len(substr) && strings.Contains(str, substr)
 }
