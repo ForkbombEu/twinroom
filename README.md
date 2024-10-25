@@ -35,14 +35,14 @@ If you want to list only embedded filesin the contracts folder, simply run:
 To execute a specific slangroom file, use the following command:
 
 ```bash
-out/bin/./gemini run <folder> <file>
+out/bin/./gemini <folder> <file>
 ```
 
 If the file is embedded, you can also run it directly by providing just the filename:
 
 
 ```bash
-out/bin/./gemini run  <file>
+out/bin/./gemini  <file>
 ```
 
 ### Daemon Mode
@@ -50,9 +50,13 @@ out/bin/./gemini run  <file>
 Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the -d or --daemon flag:
 
 ```bash
-./out/bin/gemini -d <folder>
+./out/bin/gemini -d <folder> <file>
 ```
-If only a folder is provided with the -d flag, Gemini will list the available slangroom files via HTTP.
+If a folder is provided with the -d flag, Gemini will list the available slangroom files via HTTP.
+
+```bash
+./out/bin/gemini list  -d <folder>
+```
 
 ### Examples
 
@@ -65,12 +69,12 @@ List all slang files in the examples folder:
 Run a specific slang file:
 
 ```bash
-./out/bin/gemini run examples hello
+./out/bin/gemini examples hello
 ```
 Start the HTTP server to expose the slang files:
 
 ```bash
-./out/bin/gemini -d examples
+./out/bin/gemini -d examples hello
 ```
 
 

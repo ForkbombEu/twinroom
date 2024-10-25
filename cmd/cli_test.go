@@ -92,7 +92,7 @@ Then print the string 'Hello'`
 		if err != nil {
 			t.Fatalf("Failed to create test.slang: %v", err)
 		}
-		cmd := exec.Command("go", "run", "../main.go", "run", tempDir, "test")
+		cmd := exec.Command("go", "run", "../main.go", tempDir, "test")
 
 		var out bytes.Buffer
 		cmd.Stdout = &out
@@ -110,7 +110,7 @@ Then print the string 'Hello'`
 
 	// Subtest for running a slangroom file from embedded files
 	t.Run("Embedded", func(t *testing.T) {
-		cmd := exec.Command("go", "run", "../main.go", "run", "test", "hello")
+		cmd := exec.Command("go", "run", "../main.go", "test", "hello")
 
 		var out bytes.Buffer
 		cmd.Stdout = &out

@@ -13,11 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "gemini",
-	Short: "Slangroom double sided executor",
-	Long:  "Gemini reads and executes slangroom contracts.",
-}
 var contracts embed.FS
 var daemon bool
 
@@ -29,16 +24,17 @@ func Execute(embeddedFiles embed.FS) {
 	contracts = embeddedFiles
 
 	// Execute the root command
-	if err := rootCmd.Execute(); err != nil {
+	if err := runCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
 func init() {
-	// Add the 'list' and 'run' subcommands to the root command.
-	rootCmd.AddCommand(listCmd)
-	rootCmd.AddCommand(runCmd)
+	runCmd.AddCommand(listCmd)
+	// Add a flag for the daemon mode to the 'list' command
+	listCmd.Flags().BoolVarP(&daemon, "daemon", "d", false, "Start HTTP server to list slangroom files")
+	runCmd.Flags().BoolVarP(&daemon, "daemon", "d", false, "Start HTTP server to execute slangroom file")
 }
 
 // listCmd is a command that lists all slangroom files in the folder or list embedded files if no folder is specified.
@@ -90,15 +86,10 @@ var listCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	// Add a flag for the daemon mode to the 'list' command.
-	listCmd.Flags().BoolVarP(&daemon, "daemon", "d", false, "Start HTTP server to list slangroom files")
-}
-
 // runCmd is a command that executes a specific slangroom file from a given folder.
 // It accepts a folder and file path and can optionally start an HTTP server if the daemon flag is set.
 var runCmd = &cobra.Command{
-	Use:   "run [folder or file]",
+	Use:   "gemini [folder or file]",
 	Short: "Execute a specific slangroom file",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -183,9 +174,4 @@ var runCmd = &cobra.Command{
 			fmt.Printf("File %s not found in embedded directory\n", filePath)
 		}
 	},
-}
-
-func init() {
-	// Add a flag for the daemon mode to the 'run' command.
-	runCmd.Flags().BoolVarP(&daemon, "daemon", "d", false, "Start HTTP server to execute slangroom file")
 }

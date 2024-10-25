@@ -30,14 +30,14 @@ func Example_listCmd() {
 	// Output:
 	// Listing slangroom files in folder: contracts
 	// Found file: hello.slang (Path: contracts/test/hello.slang)
-	// Found file: test.slang (Path: contracts/test.slang)
+	// Found file: test.slang (Path: contracts/test/test.slang)
 }
 
 // Example of using the run command to execute a specific slangroom file.
 func Example_runCmd() {
 
 	// Prepare the command to run the slang file
-	cmd := exec.Command("go", "run", "main.go", "run", "test", "hello")
+	cmd := exec.Command("go", "run", "main.go", "test", "hello")
 
 	// Capture the output
 	var out bytes.Buffer
