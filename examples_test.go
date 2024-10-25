@@ -10,7 +10,7 @@ import (
 func Example_listCmd() {
 
 	// Prepare the command
-	cmd := exec.Command("go", "run", "main.go", "list", "examples")
+	cmd := exec.Command("go", "run", "main.go", "list", "contracts")
 
 	// Capture the output
 	var out bytes.Buffer
@@ -28,16 +28,16 @@ func Example_listCmd() {
 	fmt.Print(output)
 
 	// Output:
-	// Listing slangroom files in folder: examples
-	// Found file: hello.slang (Path: examples/hello.slang)
-	// Found file: test.slang (Path: examples/test.slang)
+	// Listing slangroom files in folder: contracts
+	// Found file: hello.slang (Path: contracts/test/hello.slang)
+	// Found file: test.slang (Path: contracts/test.slang)
 }
 
 // Example of using the run command to execute a specific slangroom file.
 func Example_runCmd() {
 
 	// Prepare the command to run the slang file
-	cmd := exec.Command("go", "run", "main.go", "run", "examples", "hello")
+	cmd := exec.Command("go", "run", "main.go", "run", "test", "hello")
 
 	// Capture the output
 	var out bytes.Buffer
@@ -54,6 +54,5 @@ func Example_runCmd() {
 	fmt.Print(out.String())
 
 	// Output:
-	// Running slangroom file: hello from folder: examples
-	// {"output":["hello"]}
+	// {"output":["Hello_from_embedded!"]}
 }

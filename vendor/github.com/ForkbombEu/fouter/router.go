@@ -9,10 +9,11 @@ import (
 )
 
 type SlangFile struct {
-	Path     string
-	Content  string
-	FileName string
-	Dir      string
+	Path       string
+	Content    string
+	FileName   string
+	Dir        string
+	IsEmbedded bool
 }
 
 // CreateFileRouter discovers all .slang files in both the embedded FS and the base directory FS, applying the RouteHandler for each file.
@@ -31,10 +32,11 @@ func CreateFileRouter(baseDir string, embeddedFS *embed.FS, embeddedDir string, 
 				relativePath := filepath.Dir(path)
 
 				slangFile := SlangFile{
-					Path:     path,
-					Content:  string(content),
-					FileName: filepath.Base(path),
-					Dir:      relativePath,
+					Path:       path,
+					Content:    string(content),
+					FileName:   filepath.Base(path),
+					Dir:        relativePath,
+					IsEmbedded: true,
 				}
 				handler(slangFile)
 			}
@@ -68,10 +70,11 @@ func CreateFileRouter(baseDir string, embeddedFS *embed.FS, embeddedDir string, 
 				}
 
 				slangFile := SlangFile{
-					Path:     path,
-					Content:  string(content),
-					FileName: info.Name(),
-					Dir:      filepath.Dir(relativePath),
+					Path:       path,
+					Content:    string(content),
+					FileName:   info.Name(),
+					Dir:        filepath.Dir(relativePath),
+					IsEmbedded: false,
 				}
 
 				handler(slangFile)

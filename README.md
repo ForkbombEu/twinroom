@@ -1,6 +1,7 @@
 # Gemini
 
-Gemini is a command-line interface (CLI) tool that allows you to execute slangroom contracts dynamically from specified folders. It provides an easy way to list and run `slangroom contracts`  as commands or expose them via HTTP in daemon mode.
+Gemini is a command-line interface (CLI) tool that enables you to execute `slangroom contracts` , either embedded within the tool or dynamically from specified folders. It provides an easy way to list and run `slangroom contracts`  as commands or expose them via HTTP in daemon mode.
+ Embedded files must be placed in the contracts folder to be recognized and executed by the CLI.
 
 ## Installation
 
@@ -24,14 +25,26 @@ To list all slangroom files in a specified directory, use the following command:
 ```bash
 ./out/bin/gemini list <folder>
 ```
-### Run Command
+If you want to list only embedded filesin the contracts folder, simply run:
+
+```bash
+./out/bin/gemini list
+```
+### Run a file
 
 To execute a specific slangroom file, use the following command:
 
 ```bash
-out/bin/
-./gemini run <folder> <file>
+out/bin/./gemini run <folder> <file>
 ```
+
+If the file is embedded, you can also run it directly by providing just the filename:
+
+
+```bash
+out/bin/./gemini run  <file>
+```
+
 ### Daemon Mode
 
 Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the -d or --daemon flag:

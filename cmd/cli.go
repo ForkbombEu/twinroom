@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,10 +18,17 @@ var rootCmd = &cobra.Command{
 	Short: "Slangroom double sided executor",
 	Long:  "Gemini reads and executes slangroom contracts.",
 }
+var contracts embed.FS
+var daemon bool
 
 // rootCmd is the base command when called without any subcommands.
 // It initializes the command tree and is responsible for starting the Gemini CLI.
-func Execute() {
+
+func Execute(embeddedFiles embed.FS) {
+
+	contracts = embeddedFiles
+
+	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -33,36 +41,54 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 }
 
-// listCmd is a command that lists all the slangroom files in a specified folder recursively.
+// listCmd is a command that lists all slangroom files in the folder or list embedded files if no folder is specified.
 // It accepts an optional daemon flag to start an HTTP server for listing the files.
 var listCmd = &cobra.Command{
 	Use:   "list [folder]",
-	Short: "List all slangroom files in the folder recursively",
-	Args:  cobra.ExactArgs(1),
+	Short: "List all slangroom files in the folder or list embedded files if no folder is specified",
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		folder := args[0]
-		fmt.Printf("Listing slangroom files in folder: %s\n", folder)
+		if len(args) == 0 {
+			// If no folder argument is provided, list embedded files
+			fmt.Println("Listing embedded slangroom files:")
 
-		// If the daemon flag is set, start the HTTP server
-		if daemon {
-			if err := httpserver.StartHTTPServer(folder, ""); err != nil {
-				fmt.Printf("Failed to start HTTP server: %v\n", err)
-				os.Exit(1)
+			// If the daemon flag is set, start the HTTP server
+			if daemon {
+				if err := httpserver.StartHTTPServer("contracts", ""); err != nil {
+					fmt.Printf("Failed to start HTTP server: %v\n", err)
+					os.Exit(1)
+				}
+				return
 			}
-			return
-		}
+			err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
+				fmt.Printf("Found file: %s (Path: %s)\n", file.FileName, file.Path)
+			})
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+		} else {
+			// If a folder argument is provided, list files in that folder
+			folder := args[0]
+			fmt.Printf("Listing slangroom files in folder: %s\n", folder)
 
-		// Otherwise, list the slangroom files in the folder
-		err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
-			fmt.Printf("Found file: %s (Path: %s)\n", file.FileName, file.Path)
-		})
-		if err != nil {
-			fmt.Println("Error:", err)
+			if daemon {
+				if err := httpserver.StartHTTPServer(folder, ""); err != nil {
+					fmt.Printf("Failed to start HTTP server: %v\n", err)
+					os.Exit(1)
+				}
+				return
+			}
+
+			// List slangroom files in the specified folder
+			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
+				fmt.Printf("Found file: %s (Path: %s)\n", file.FileName, file.Path)
+			})
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
 		}
 	},
 }
-
-var daemon bool
 
 func init() {
 	// Add a flag for the daemon mode to the 'list' command.
@@ -72,31 +98,69 @@ func init() {
 // runCmd is a command that executes a specific slangroom file from a given folder.
 // It accepts a folder and file path and can optionally start an HTTP server if the daemon flag is set.
 var runCmd = &cobra.Command{
-	Use:   "run [folder] [file]",
+	Use:   "run [folder or file]",
 	Short: "Execute a specific slangroom file",
-	Args:  cobra.MinimumNArgs(2),
+	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		folder := args[0]
-		filePath := filepath.Join(args[1:]...)
+		filePath := filepath.Join(args...)
 
-		// If the daemon flag is set, start the HTTP server
-		if daemon {
-			fileURL := httpserver.GetSlangFileURL(folder, filePath)
-			if err := httpserver.StartHTTPServer(folder, fileURL); err != nil {
-				fmt.Printf("Failed to start HTTP server: %v\n", err)
-				os.Exit(1) // Exit the CLI with error status
+		found := false
+
+		// Check if filePath exists in embedded files
+		err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
+			relativePath := strings.TrimPrefix(filepath.Join(file.Dir, file.FileName), "contracts/")
+			relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
+
+			if relativePath == filePath {
+				found = true
+				input := slangroom.SlangroomInput{Contract: file.Content}
+
+				// If daemon flag is set, start HTTP server for the embedded file
+				if daemon {
+					fileURL := httpserver.GetSlangFileURL("contracts", filePath)
+					if err := httpserver.StartHTTPServer("contracts", fileURL); err != nil {
+						fmt.Printf("Failed to start HTTP server: %v\n", err)
+						os.Exit(1)
+					}
+					return
+				}
+
+				res, err := slangroom.Exec(input)
+				if err != nil {
+					fmt.Println(res.Logs)
+				} else {
+					fmt.Println(res.Output)
+				}
 			}
+		})
 
-		} else {
-			fmt.Printf("Running slangroom file: %s from folder: %s\n", filePath, folder)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
 
-			found := false
+		// If not found in embedded, check on the filesystem
+		if !found && len(args) >= 2 {
+			folder := args[0]
+			filePath := filepath.Join(args[1:]...)
+
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
 				relativeFilePath := filepath.Join(file.Dir, file.FileName)
 				relativeFilePath = strings.TrimSuffix(relativeFilePath, filepath.Ext(relativeFilePath))
+
 				if relativeFilePath == filePath {
 					found = true
 					input := slangroom.SlangroomInput{Contract: file.Content}
+
+					if daemon {
+						fileURL := httpserver.GetSlangFileURL(folder, filePath)
+						if err := httpserver.StartHTTPServer(folder, fileURL); err != nil {
+							fmt.Printf("Failed to start HTTP server: %v\n", err)
+							os.Exit(1)
+						}
+						return
+					}
+
 					res, err := slangroom.Exec(input)
 					if err != nil {
 						fmt.Println(res.Logs)
@@ -105,14 +169,18 @@ var runCmd = &cobra.Command{
 					}
 				}
 			})
+
 			if err != nil {
 				fmt.Println("Error:", err)
+				return
 			}
 
-			// If the file was not found in the folder, print an error message
+			// If the file was not found in the provided folder path
 			if !found {
-				fmt.Printf("File %s not found in %s\n", filePath, folder)
+				fmt.Printf("File %s not found in %s or embedded directory\n", filePath, folder)
 			}
+		} else if !found {
+			fmt.Printf("File %s not found in embedded directory\n", filePath)
 		}
 	},
 }

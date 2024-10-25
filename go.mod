@@ -3,7 +3,7 @@ module github.com/forkbombeu/gemini
 go 1.23
 
 require (
-	github.com/ForkbombEu/fouter v0.0.0-20241022095749-0ee9674e39ba
+	github.com/ForkbombEu/fouter v0.0.0-20241025081836-854f54912b1c
 	github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241017085658-fb538b02efa3
 	github.com/gorilla/mux v1.8.1
 	github.com/spf13/cobra v1.8.1
