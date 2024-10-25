@@ -12,10 +12,24 @@ Clone the repository:
 ```bash
 git clone https://github.com/ForkbombEu/gemini
 ```
-Build the executable:
+### Build the executable:
+You can build the executable using either the go build command or the provided Makefile.
+Using go build:
+
+To build the binary with a custom name using go build, run:
+
 ```bash
-make build
+go build -o <custom_name> .
 ```
+
+Using make build:
+
+```bash
+make build BINARY_NAME=<custom_name>
+```
+If you want to specify a custom binary name, you can do so by passing the BINARY_NAME variable.
+
+Replace <custom_name> with your desired binary name.
 ## Usage
 
 ### List Command
