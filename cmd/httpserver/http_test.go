@@ -82,7 +82,7 @@ Then print the string 'Hello'`,
 	}
 
 	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file)
+	handler := executeSlangFileHandler(file, "")
 
 	handler.ServeHTTP(rr, req)
 
@@ -113,7 +113,7 @@ func TestExecuteSlangFileHandler_MethodNotAllowed(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file)
+	handler := executeSlangFileHandler(file, "")
 
 	handler.ServeHTTP(rr, req)
 

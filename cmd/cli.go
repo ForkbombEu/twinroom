@@ -10,6 +10,7 @@ import (
 	"github.com/ForkbombEu/fouter"
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
 	"github.com/forkbombeu/gemini/cmd/httpserver"
+	"github.com/forkbombeu/gemini/cmd/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -94,6 +95,7 @@ var runCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		filePath := filepath.Join(args...)
+		input := slangroom.SlangroomInput{}
 
 		found := false
 
@@ -101,11 +103,12 @@ var runCmd = &cobra.Command{
 		err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
 			relativePath := strings.TrimPrefix(filepath.Join(file.Dir, file.FileName), "contracts/")
 			relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
-
+			filename := strings.TrimSuffix(file.FileName, ".slang")
 			if relativePath == filePath {
 				found = true
-				input := slangroom.SlangroomInput{Contract: file.Content}
-
+				input.Contract = file.Content
+				// Load additional data from JSON files with matching names
+				utils.LoadAdditionalData(file.Dir, filename, &input)
 				// If daemon flag is set, start HTTP server for the embedded file
 				if daemon {
 					fileURL := httpserver.GetSlangFileURL("contracts", filePath)
@@ -138,10 +141,12 @@ var runCmd = &cobra.Command{
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
 				relativeFilePath := filepath.Join(file.Dir, file.FileName)
 				relativeFilePath = strings.TrimSuffix(relativeFilePath, filepath.Ext(relativeFilePath))
-
+				filename := strings.TrimSuffix(file.FileName, ".slang")
 				if relativeFilePath == filePath {
 					found = true
-					input := slangroom.SlangroomInput{Contract: file.Content}
+					input.Contract = file.Content
+					// Load additional data from JSON files with matching names
+					utils.LoadAdditionalData(filepath.Join(folder, file.Dir), filename, &input)
 
 					if daemon {
 						fileURL := httpserver.GetSlangFileURL(folder, filePath)
