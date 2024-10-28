@@ -25,6 +25,6 @@
 
 !Makefile
 
-!contracts/*
+!contracts/**/*
 # ...even if they are in subdirectories
 !*/
