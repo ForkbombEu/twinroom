@@ -1,7 +1,12 @@
 # Gemini
 
-Gemini is a command-line interface (CLI) tool that enables you to execute `slangroom contracts` , either embedded within the tool or dynamically from specified folders. It provides an easy way to list and run `slangroom contracts`  as commands or expose them via HTTP in daemon mode.
- Embedded files must be placed in the contracts folder to be recognized and executed by the CLI.
+Gemini is a command-line interface (CLI) tool that enables you to execute [slangroom contracts](https://dyne.org/slangroom) written in [Zencode language](https://dev.zenroom.org).
+
+Contracts can be both embedded within the tool (compiled at build time) and added dynamically from specified folders (specified at runtime).
+
+It also provides an easy way to list and run currently configured contracts both as CLI commands or as HTTP API endpoints served in daemon mode.
+
+When dynamic run-time contract files have the same path as built-in embedded contracts, then the contracts placed in the contracts folder at build time have priority and will override the rest.
 
 ## Installation
 
