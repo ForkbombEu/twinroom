@@ -76,6 +76,33 @@ If a folder is provided with the -d flag, Gemini will list the available slangro
 ```bash
 ./out/bin/gemini list  -d <folder>
 ```
+### Adding Additional Data to Slangroom Contrats
+
+Gemini supports loading additional JSON-based data for each slangroom file. This data can be provided through optional JSON files with specific names, stored alongside the main slangroom file in the same directory. The parameters can be:
+
+* `data`
+* `keys`
+* `extra`
+* `context`
+* `conf`
+
+To add data for a specific slangroom file, create JSON files following the naming convention below:
+
+```text
+<filename>.<param>.json
+```
+
+Where:
+ * `<filename>` is the name of your contract file.
+ * `<param>` is one of the parameters listed above.
+
+For example, if you have a file called `hello.slang`, you can provide additional data by creating files like:
+
+```text
+hello.data.json
+hello.keys.json
+hello.extra.json
+```
 
 ### Examples
 

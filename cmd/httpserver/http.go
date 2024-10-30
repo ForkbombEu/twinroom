@@ -9,6 +9,7 @@ import (
 
 	"github.com/ForkbombEu/fouter"
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
+	"github.com/forkbombeu/gemini/cmd/utils"
 	"github.com/gorilla/mux"
 )
 
@@ -53,14 +54,24 @@ func slangFilePageHandler(file fouter.SlangFile) http.HandlerFunc {
 
 // executeSlangFileHandler returns an HTTP handler that executes a slangroom file via a POST request.
 // The handler responds with a JSON output of the result or an error if the execution fails.
-func executeSlangFileHandler(file fouter.SlangFile) http.HandlerFunc {
+func executeSlangFileHandler(file fouter.SlangFile, baseFolder string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
 
-		result, err := slangroom.Exec(slangroom.SlangroomInput{Contract: file.Content})
+		input := slangroom.SlangroomInput{Contract: file.Content}
+
+		// Load additional data from JSON files with matching names
+		filename := strings.TrimSuffix(file.FileName, ".slang")
+		err := utils.LoadAdditionalData(filepath.Join(baseFolder, file.Dir), filename, &input)
+		if err != nil {
+			http.Error(w, "Error loading additional data: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		result, err := slangroom.Exec(input)
 		if err != nil {
 			http.Error(w, "Error executing slang file: "+result.Logs, http.StatusInternalServerError)
 			return
@@ -86,7 +97,7 @@ func StartHTTPServer(folder string, url string) error {
 		relativePath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName)))
 		slangFiles[file.Dir] = append(slangFiles[file.Dir], relativePath)
 		r.HandleFunc("/slang/"+relativePath, slangFilePageHandler(file)).Methods("GET")
-		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file)).Methods("POST")
+		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder)).Methods("POST")
 	})
 
 	if err != nil {

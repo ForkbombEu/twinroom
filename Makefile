@@ -4,11 +4,13 @@
 GOCMD=go
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
-BINARY_NAME?=gemini
+BINARY_NAME?=testone
 VERSION?=0.0.0
 SERVICE_PORT?=3000
 DOCKER_REGISTRY?= #if set it should finished by /
 EXPORT_RESULT?=false # for CI please set EXPORT_RESULT to true
+BIN?=$$HOME/.local/bin
+SLANGROOM_EXEC?=$(BIN)/slangroom-exec
 
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
@@ -20,8 +22,14 @@ RESET  := $(shell tput -Txterm sgr0)
 
 all: help
 
+$(BIN):
+	mkdir -p $(BIN)
+
+$(SLANGROOM_EXEC): $(BIN)
+	wget https://github.com/dyne/slangroom-exec/releases/latest/download/slangroom-exec-$(shell uname)-$(shell uname -m) -O $(SLANGROOM_EXEC) && chmod +x $(SLANGROOM_EXEC)
+
 ## Build:
-build: vendor ## Build your project and put the output binary in out/bin/
+build: vendor $(SLANGROOM_EXEC) ## Build your project and put the output binary in out/bin/
 	mkdir -p out/bin
 	GO111MODULE=on $(GOCMD) build -mod vendor -o out/bin/$(BINARY_NAME) .
 
