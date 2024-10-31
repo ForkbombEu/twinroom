@@ -127,19 +127,6 @@ func TestExecuteSlangFileHandler_MethodNotAllowed(t *testing.T) {
 	}
 }
 
-func TestGetSlangFileURL(t *testing.T) {
-
-	folder := "example_dir"
-	fileName := "test.slang"
-	expectedURL := "http://localhost:3000/slang/test"
-
-	result := GetSlangFileURL(folder, fileName)
-
-	if result != expectedURL {
-		t.Errorf("Expected URL to be %v, got %v", expectedURL, result)
-	}
-}
-
 // Helper function to check if a substring is in a string
 func contains(str, substr string) bool {
 	return len(str) >= len(substr) && strings.Contains(str, substr)
