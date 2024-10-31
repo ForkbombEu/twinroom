@@ -121,6 +121,7 @@ var runCmd = &cobra.Command{
 
 				res, err := slangroom.Exec(input)
 				if err != nil {
+					fmt.Println("Error:", err)
 					fmt.Println(res.Logs)
 				} else {
 					fmt.Println(res.Output)
@@ -159,6 +160,7 @@ var runCmd = &cobra.Command{
 
 					res, err := slangroom.Exec(input)
 					if err != nil {
+						fmt.Println("Error:", err)
 						fmt.Println(res.Logs)
 					} else {
 						fmt.Println(res.Output)
