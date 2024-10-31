@@ -113,8 +113,7 @@ var runCmd = &cobra.Command{
 				utils.LoadAdditionalData(file.Dir, filename, &input)
 				// If daemon flag is set, start HTTP server for the embedded file
 				if daemon {
-					fileURL := httpserver.GetSlangFileURL("contracts", filePath)
-					if err := httpserver.StartHTTPServer("contracts", fileURL); err != nil {
+					if err := httpserver.StartHTTPServer("contracts", filePath); err != nil {
 						fmt.Printf("Failed to start HTTP server: %v\n", err)
 						os.Exit(1)
 					}
@@ -152,8 +151,7 @@ var runCmd = &cobra.Command{
 					utils.LoadAdditionalData(filepath.Join(folder, file.Dir), filename, &input)
 
 					if daemon {
-						fileURL := httpserver.GetSlangFileURL(folder, filePath)
-						if err := httpserver.StartHTTPServer(folder, fileURL); err != nil {
+						if err := httpserver.StartHTTPServer(folder, filePath); err != nil {
 							fmt.Printf("Failed to start HTTP server: %v\n", err)
 							os.Exit(1)
 						}

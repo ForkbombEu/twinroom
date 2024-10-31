@@ -3,6 +3,7 @@ package httpserver
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,8 @@ import (
 	"github.com/forkbombeu/gemini/cmd/utils"
 	"github.com/gorilla/mux"
 )
+
+var port string
 
 // listSlangFilesHandler returns an HTTP handler that lists available slangroom files in the provided directories.
 // It generates an HTML page displaying the slangroom files for each directory.
@@ -89,7 +92,7 @@ func executeSlangFileHandler(file fouter.SlangFile, baseFolder string) http.Hand
 }
 
 // startHTTPServer starts an HTTP server on port 3000 to serve slangroom files from the specified folder.
-func StartHTTPServer(folder string, url string) error {
+func StartHTTPServer(folder string, filePath string) error {
 	r := mux.NewRouter()
 	slangFiles := make(map[string][]string)
 
@@ -106,24 +109,27 @@ func StartHTTPServer(folder string, url string) error {
 
 	r.HandleFunc("/slang/", listSlangFilesHandler(slangFiles)).Methods("GET")
 
-	fmt.Println("Starting HTTP server on :3000")
-	if url != "" {
-		fmt.Printf("You can find the file at: %s\n", url)
-	} else {
-		fmt.Println("Access the contract files at: http://localhost:3000/slang/")
+	// Try binding to port 3000, otherwise bind to a random open port
+	port = "3000"
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		listener, err = net.Listen("tcp", ":0")
+		if err != nil {
+			return fmt.Errorf("error finding an open port: %v", err)
+		}
+		port = fmt.Sprintf("%d", listener.Addr().(*net.TCPAddr).Port)
 	}
 
-	if err := http.ListenAndServe(":3000", r); err != nil {
+	fmt.Printf("Starting HTTP server on :%s\n", port)
+	if filePath != "" {
+		fmt.Printf("You can find the file at: http://localhost:%s/slang/%s", port, filePath)
+	} else {
+		fmt.Printf("Access the contract files at: http://localhost:%s/slang/\n", port)
+	}
+
+	if err := http.Serve(listener, r); err != nil {
 		return fmt.Errorf("error starting HTTP server: %v", err)
 	}
 
 	return nil
-}
-
-// GetSlangFileURL returns the URL for accessing a slangroom file given its folder and file name.
-func GetSlangFileURL(folder string, fileName string) string {
-	relativePath := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	slangFileURL := fmt.Sprintf("http://localhost:3000/slang/%s", relativePath)
-
-	return slangFileURL
 }
