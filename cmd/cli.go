@@ -17,6 +17,8 @@ import (
 var contracts embed.FS
 var daemon bool
 
+var extension string = ".slang"
+
 // rootCmd is the base command when called without any subcommands.
 // It initializes the command tree and is responsible for starting the Gemini CLI.
 
@@ -103,7 +105,7 @@ var runCmd = &cobra.Command{
 		err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
 			relativePath := strings.TrimPrefix(filepath.Join(file.Dir, file.FileName), "contracts/")
 			relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
-			filename := strings.TrimSuffix(file.FileName, ".slang")
+			filename := strings.TrimSuffix(file.FileName, extension)
 			if relativePath == filePath {
 				found = true
 				input.Contract = file.Content
@@ -142,7 +144,7 @@ var runCmd = &cobra.Command{
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
 				relativeFilePath := filepath.Join(file.Dir, file.FileName)
 				relativeFilePath = strings.TrimSuffix(relativeFilePath, filepath.Ext(relativeFilePath))
-				filename := strings.TrimSuffix(file.FileName, ".slang")
+				filename := strings.TrimSuffix(file.FileName, extension)
 				if relativeFilePath == filePath {
 					found = true
 					input.Contract = file.Content
