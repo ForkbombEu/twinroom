@@ -29,8 +29,10 @@ func Example_listCmd() {
 
 	// Output:
 	// Listing slangroom files in folder: contracts
+	// Found file: env.slang (Path: contracts/test/env.slang)
 	// Found file: execute_zencode.slang (Path: contracts/test/execute_zencode.slang)
 	// Found file: hello.slang (Path: contracts/test/hello.slang)
+	// Found file: param.slang (Path: contracts/test/param.slang)
 	// Found file: test.slang (Path: contracts/test/test.slang)
 }
 
@@ -78,4 +80,50 @@ func Example_runCmdWithExtraData() {
 
 	// Output:
 	// {"result":{"ecdh_public_key":"BLOYXryyAI7rPuyNbI0/1CfLFd7H/NbX+osqyQHjPR9BPK1lYSPOixZQWvFK+rkkJ+aJbYp6kii2Y3+fZ5vl2MA="}}
+}
+
+func Example_runCmdWithParam() {
+
+	// Prepare the command to run the slang file
+	cmd := exec.Command("go", "run", "main.go", "test", "param", "username", "-n", "testname", "-D", "small")
+
+	// Capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+
+	// Check for errors
+	if err != nil {
+		fmt.Println("Command execution failed:", err)
+		return
+	}
+
+	// Output the results
+	fmt.Print(out.String())
+
+	// Output:
+	// {"drink":"small","name":"testname","timeout":60,"username":"username"}
+}
+
+func Example_runCmdWithEnvVariable() {
+
+	// Prepare the command to run the slang file
+	cmd := exec.Command("go", "run", "main.go", "test", "env", "-D", "contracts/test", "test.txt")
+
+	// Capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+
+	// Check for errors
+	if err != nil {
+		fmt.Println("Command execution failed:", err)
+		return
+	}
+
+	// Output the results
+	fmt.Print(out.String())
+
+	// Output:
+	// {"content":"The enviroment variable is set correctly\n","filename":"test.txt"}
 }
