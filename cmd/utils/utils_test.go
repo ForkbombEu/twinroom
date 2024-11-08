@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
+	"github.com/spf13/cobra"
 )
 
 // TestLoadAdditionalData tests the LoadAdditionalData function.
@@ -145,5 +148,190 @@ func TestValidateJSON(t *testing.T) {
 				t.Errorf("Expected error: %v, got: %v", tt.expectError, err)
 			}
 		})
+	}
+}
+
+func TestLoadMetadata(t *testing.T) {
+
+	sampleMetadata := CommandMetadata{
+		Description: "Test description",
+		Arguments: []struct {
+			Name        string `json:"name"`
+			Description string `json:"description,omitempty"`
+		}{
+			{Name: "arg1", Description: "Argument 1 description"},
+			{Name: "arg2", Description: "Argument 2 description"},
+		},
+		Options: []struct {
+			Name        string   `json:"name"`
+			Description string   `json:"description,omitempty"`
+			Default     string   `json:"default,omitempty"`
+			Choices     []string `json:"choices,omitempty"`
+			Env         []string `json:"env,omitempty"`
+			Hidden      bool     `json:"hidden,omitempty"`
+		}{
+			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}},
+		},
+	}
+	// Create a temporary directory
+	tempDir := t.TempDir()
+
+	// Define metadata file path
+	metadataPath := filepath.Join(tempDir, "test_metadata.json")
+
+	// Write the sample metadata to a temporary file
+	fileContent, err := json.Marshal(sampleMetadata)
+	if err != nil {
+		t.Fatalf("Failed to marshal sample metadata: %v", err)
+	}
+
+	if err := os.WriteFile(metadataPath, fileContent, 0644); err != nil {
+		t.Fatalf("Failed to write metadata file: %v", err)
+	}
+
+	// Run LoadMetadata using the temp file
+	metadata, err := LoadMetadata(nil, metadataPath)
+	if err != nil {
+		t.Fatalf("Failed to load metadata: %v", err)
+	}
+
+	// Verify that the loaded metadata matches the sample metadata
+	if metadata.Description != sampleMetadata.Description {
+		t.Errorf("Expected description %s, got %s", sampleMetadata.Description, metadata.Description)
+	}
+	if len(metadata.Arguments) != len(sampleMetadata.Arguments) {
+		t.Errorf("Expected %d arguments, got %d", len(sampleMetadata.Arguments), len(metadata.Arguments))
+	}
+	if len(metadata.Options) != len(sampleMetadata.Options) {
+		t.Errorf("Expected %d options, got %d", len(sampleMetadata.Options), len(metadata.Options))
+	}
+}
+func TestMergeJSON(t *testing.T) {
+	tests := []struct {
+		name          string
+		json1         string
+		json2         string
+		expected      string
+		expectedError bool
+	}{
+		{
+			name:          "Merging two valid JSONs",
+			json1:         `{"key1": "value1"}`,
+			json2:         `{"key2": "value2"}`,
+			expected:      `{"key1":"value1","key2":"value2"}`,
+			expectedError: false,
+		},
+		{
+			name:          "Merging two valid JSONs with same keys",
+			json1:         `{"key1": "value1", "key3": "value3"}`,
+			json2:         `{"key2": "value2", "key3": "pass"}`,
+			expected:      `{"key1":"value1","key2":"value2","key3":"pass"}`,
+			expectedError: false,
+		},
+		{
+			name:          "Merging with an invalid JSON",
+			json1:         `{"key1": "value1"}`,
+			json2:         `{"key2": value2}`,
+			expected:      "",
+			expectedError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := MergeJSON(tt.json1, tt.json2)
+			if (err != nil) != tt.expectedError {
+				t.Errorf("Expected error: %v, got: %v", tt.expectedError, err)
+			}
+			if !tt.expectedError && strings.TrimSpace(result) != tt.expected {
+				t.Errorf("Expected result: %s, got: %s", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestConfigureArgumentsAndFlags tests ConfigureArgumentsAndFlags function.
+func TestConfigureArgumentsAndFlags(t *testing.T) {
+	cmd := &cobra.Command{
+		Use: "testcmd",
+	}
+
+	metadata := &CommandMetadata{
+		Description: "Test command",
+		Arguments: []struct {
+			Name        string `json:"name"`
+			Description string `json:"description,omitempty"`
+		}{
+			{Name: "<arg1>", Description: "Required argument"},
+			{Name: "[arg2]", Description: "Optional argument"},
+		},
+		Options: []struct {
+			Name        string   `json:"name"`
+			Description string   `json:"description,omitempty"`
+			Default     string   `json:"default,omitempty"`
+			Choices     []string `json:"choices,omitempty"`
+			Env         []string `json:"env,omitempty"`
+			Hidden      bool     `json:"hidden,omitempty"`
+		}{
+			{Name: "--flag1", Description: "Test flag", Default: "default_value"},
+		},
+	}
+
+	args, flags := ConfigureArgumentsAndFlags(cmd, metadata)
+
+	if len(args) != 2 || len(flags) != 1 {
+		t.Errorf("Expected 2 arguments and 1 flag, got %d arguments and %d flags", len(args), len(flags))
+	}
+
+	// Verify that flags and arguments are correctly set up
+	if _, exists := flags["flag1"]; !exists {
+		t.Errorf("Expected flag 'flag1' to be set in flagContents")
+	}
+	if _, exists := args["arg1"]; !exists {
+		t.Errorf("Expected argument 'arg1' to be set in argContents")
+	}
+}
+
+// TestValidateFlags tests the ValidateFlags function.
+func TestValidateFlags(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.Flags().String("flag1", "", "")
+	cmd.Flags().String("flag2", "", "")
+
+	flagContents := map[string]FlagData{
+		"flag1": {
+			Choices: []string{"opt1", "opt2"},
+			Env:     []string{"TEST_FLAG_ENV_VAR"},
+		},
+		"flag2": {
+			Choices: []string{"opt1", "opt2"},
+		},
+	}
+
+	argContents := map[string]string{}
+
+	// Test for valid choice and check environment variable setting
+	cmd.Flags().Set("flag1", "opt1")
+	cmd.Flags().Set("flag2", "opt2")
+
+	// Ensure the environment variable is unset before the test
+	os.Unsetenv("TEST_FLAG_ENV_VAR")
+
+	err := ValidateFlags(cmd, flagContents, argContents)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+
+	// Check if the environment variable was set correctly
+	envVarValue := os.Getenv("TEST_FLAG_ENV_VAR")
+	if envVarValue != "opt1" {
+		t.Errorf("Expected TEST_ENV_VAR to be 'opt1', got: %v", envVarValue)
+	}
+
+	// Test for invalid choice
+	cmd.Flags().Set("flag2", "invalid_choice")
+	err = ValidateFlags(cmd, flagContents, argContents)
+	if err == nil {
+		t.Errorf("Expected error for invalid flag choice, got: nil")
 	}
 }

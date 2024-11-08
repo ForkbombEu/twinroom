@@ -57,21 +57,26 @@ func slangFilePageHandler(file fouter.SlangFile) http.HandlerFunc {
 
 // executeSlangFileHandler returns an HTTP handler that executes a slangroom file via a POST request.
 // The handler responds with a JSON output of the result or an error if the execution fails.
-func executeSlangFileHandler(file fouter.SlangFile, baseFolder string) http.HandlerFunc {
+func executeSlangFileHandler(file fouter.SlangFile, baseFolder string, executionData *slangroom.SlangroomInput) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
+		var input slangroom.SlangroomInput
+		if executionData == nil {
 
-		input := slangroom.SlangroomInput{Contract: file.Content}
+			input.Contract = file.Content
 
-		// Load additional data from JSON files with matching names
-		filename := strings.TrimSuffix(file.FileName, ".slang")
-		err := utils.LoadAdditionalData(filepath.Join(baseFolder, file.Dir), filename, &input)
-		if err != nil {
-			http.Error(w, "Error loading additional data: "+err.Error(), http.StatusInternalServerError)
-			return
+			// Load additional data from JSON files with matching names
+			filename := strings.TrimSuffix(file.FileName, ".slang")
+			err := utils.LoadAdditionalData(filepath.Join(baseFolder, file.Dir), filename, &input)
+			if err != nil {
+				http.Error(w, "Error loading additional data: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			input = *executionData
 		}
 
 		result, err := slangroom.Exec(input)
@@ -92,7 +97,7 @@ func executeSlangFileHandler(file fouter.SlangFile, baseFolder string) http.Hand
 }
 
 // startHTTPServer starts an HTTP server on port 3000 to serve slangroom files from the specified folder.
-func StartHTTPServer(folder string, filePath string) error {
+func StartHTTPServer(folder string, filePath string, input *slangroom.SlangroomInput) error {
 	r := mux.NewRouter()
 	slangFiles := make(map[string][]string)
 
@@ -100,7 +105,11 @@ func StartHTTPServer(folder string, filePath string) error {
 		relativePath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName)))
 		slangFiles[file.Dir] = append(slangFiles[file.Dir], relativePath)
 		r.HandleFunc("/slang/"+relativePath, slangFilePageHandler(file)).Methods("GET")
-		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder)).Methods("POST")
+		var executionData *slangroom.SlangroomInput
+		if filePath == relativePath && input != nil {
+			executionData = input
+		}
+		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder, executionData)).Methods("POST")
 	})
 
 	if err != nil {
