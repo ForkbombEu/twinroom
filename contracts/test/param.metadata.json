@@ -1,0 +1,44 @@
+{
+    "description": "Example of a command with different arguments and options",
+    "arguments": [
+        {
+            "name": "<username>",
+            "description": "user to login"
+        },
+        {
+            "name": "[password]",
+            "description": "password for user if required"
+        }
+    ],
+    "options": [
+        {
+            "name": "-n, --name <name>"
+        },
+        {
+            "name": "-s, --secret",
+            "hidden": true
+        },
+        {
+            "name": "-t, --timeout <delay>",
+            "description": "timeout in seconds",
+            "default": "60"
+        },
+        {
+            "name": "-p, --port <number>",
+            "description": "port number",
+            "env": [
+                "PORT"
+            ]
+        },
+        {
+            "name": "-D, --drink <size>",
+            "description": "drink size",
+            "choices": [
+                "small",
+                "medium",
+                "large"
+            ]
+        }
+
+    ]
+}
