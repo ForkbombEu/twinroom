@@ -301,13 +301,15 @@ func TestValidateFlags(t *testing.T) {
 	flagContents := map[string]FlagData{
 		"flag1": {
 			Choices: []string{"opt1", "opt2"},
-			Env:     []string{"TEST_FLAG_ENV_VAR"},
 		},
 		"flag2": {
 			Choices: []string{"opt1", "opt2"},
 		},
 		"flag3": {
 			Choices: []string{"opt1", "opt2"},
+		},
+		"envFlag": {
+			Env: []string{"TEST_FLAG_ENV_VAR"},
 		},
 	}
 
@@ -318,7 +320,7 @@ func TestValidateFlags(t *testing.T) {
 	cmd.Flags().Set("flag2", "opt2")
 
 	// Ensure the environment variable is unset before the test
-	os.Unsetenv("TEST_FLAG_ENV_VAR")
+	os.Setenv("TEST_FLAG_ENV_VAR", "test")
 
 	err := ValidateFlags(cmd, flagContents, argContents)
 	if err != nil {
@@ -326,8 +328,8 @@ func TestValidateFlags(t *testing.T) {
 	}
 
 	// Check if the environment variable was set correctly
-	envVarValue := os.Getenv("TEST_FLAG_ENV_VAR")
-	if envVarValue != "opt1" {
+	envVarValue := argContents["envFlag"]
+	if envVarValue != "test" {
 		t.Errorf("Expected TEST_ENV_VAR to be 'opt1', got: %v", envVarValue)
 	}
 

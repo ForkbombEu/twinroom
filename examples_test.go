@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -108,8 +109,8 @@ func Example_runCmdWithParam() {
 func Example_runCmdWithEnvVariable() {
 
 	// Prepare the command to run the slang file
-	cmd := exec.Command("go", "run", "main.go", "test", "env", "-D", "contracts/test", "test.txt")
-
+	cmd := exec.Command("go", "run", "main.go", "test", "env")
+	os.Setenv("FILE_CONTENT", "The enviroment variable is set correctly")
 	// Capture the output
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -125,5 +126,5 @@ func Example_runCmdWithEnvVariable() {
 	fmt.Print(out.String())
 
 	// Output:
-	// {"content":"The enviroment variable is set correctly\n","filename":"test.txt"}
+	//{"content":"The enviroment variable is set correctly"}
 }

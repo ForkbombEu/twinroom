@@ -234,19 +234,22 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]string) error {
 	for flag, content := range flagContents {
 		value, _ := cmd.Flags().GetString(flag)
+
+		if value == "" && len(content.Env) > 0 {
+			// Try reading the value from the environment variables
+			for _, envVar := range content.Env {
+				envValue := os.Getenv(envVar)
+				if envValue != "" {
+					value = envValue
+					break
+				}
+			}
+		}
 		if value != "" {
 			argContents[flag] = value
 		}
 		if (content.Choices != nil) && !IsValidChoice(value, content.Choices) {
 			return fmt.Errorf("invalid input '%s' for flag: %s. Valid choices are: %v", value, flag, content.Choices)
-		}
-		for _, envVar := range content.Env {
-			if value != "" {
-				err := os.Setenv(envVar, value)
-				if err != nil {
-					return fmt.Errorf("failed to set environment variable %s: %w", envVar, err)
-				}
-			}
 		}
 	}
 	return nil

@@ -1,1 +1,0 @@
-The enviroment variable is set correctly
