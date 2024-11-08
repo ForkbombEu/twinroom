@@ -126,6 +126,9 @@ func GetArgumentNames(arguments []struct {
 }
 
 func IsValidChoice(value string, choices []string) bool {
+	if value == "" {
+		return true
+	}
 	for _, choice := range choices {
 		if value == choice {
 			return true

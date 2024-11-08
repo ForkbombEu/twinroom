@@ -306,6 +306,9 @@ func TestValidateFlags(t *testing.T) {
 		"flag2": {
 			Choices: []string{"opt1", "opt2"},
 		},
+		"flag3": {
+			Choices: []string{"opt1", "opt2"},
+		},
 	}
 
 	argContents := map[string]string{}
@@ -334,4 +337,5 @@ func TestValidateFlags(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error for invalid flag choice, got: nil")
 	}
+
 }
