@@ -104,7 +104,7 @@ hello.keys.json
 hello.extra.json
 ```
 
-###Command Arguments and Flags from `metadata.json`
+### Command Arguments and Flags from `metadata.json`
 
 In addition to the above parameters, Gemini allows you to define custom arguments and flags for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
 
