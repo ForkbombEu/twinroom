@@ -169,6 +169,7 @@ func TestLoadMetadata(t *testing.T) {
 			Choices     []string `json:"choices,omitempty"`
 			Env         []string `json:"env,omitempty"`
 			Hidden      bool     `json:"hidden,omitempty"`
+			File        bool     `json:"file,omitempty"`
 		}{
 			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}},
 		},
@@ -272,6 +273,7 @@ func TestConfigureArgumentsAndFlags(t *testing.T) {
 			Choices     []string `json:"choices,omitempty"`
 			Env         []string `json:"env,omitempty"`
 			Hidden      bool     `json:"hidden,omitempty"`
+			File        bool     `json:"file,omitempty"`
 		}{
 			{Name: "--flag1", Description: "Test flag", Default: "default_value"},
 		},
@@ -297,6 +299,8 @@ func TestValidateFlags(t *testing.T) {
 	cmd := &cobra.Command{}
 	cmd.Flags().String("flag1", "", "")
 	cmd.Flags().String("flag2", "", "")
+	cmd.Flags().String("envFlag", "", "")
+	cmd.Flags().String("fileFlag", "", "")
 
 	flagContents := map[string]FlagData{
 		"flag1": {
@@ -305,11 +309,11 @@ func TestValidateFlags(t *testing.T) {
 		"flag2": {
 			Choices: []string{"opt1", "opt2"},
 		},
-		"flag3": {
-			Choices: []string{"opt1", "opt2"},
-		},
 		"envFlag": {
 			Env: []string{"TEST_FLAG_ENV_VAR"},
+		},
+		"fileFlag": {
+			File: true,
 		},
 	}
 
@@ -319,7 +323,6 @@ func TestValidateFlags(t *testing.T) {
 	cmd.Flags().Set("flag1", "opt1")
 	cmd.Flags().Set("flag2", "opt2")
 
-	// Ensure the environment variable is unset before the test
 	os.Setenv("TEST_FLAG_ENV_VAR", "test")
 
 	err := ValidateFlags(cmd, flagContents, argContents)
@@ -333,6 +336,59 @@ func TestValidateFlags(t *testing.T) {
 		t.Errorf("Expected TEST_ENV_VAR to be 'opt1', got: %v", envVarValue)
 	}
 
+	// Test reading from stdin
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("error creating pipe: %v", err)
+	}
+	defer r.Close()
+	defer w.Close()
+
+	originalStdin := os.Stdin
+	defer func() { os.Stdin = originalStdin }()
+	os.Stdin = r
+
+	_, err = w.Write([]byte("input from stdin"))
+	if err != nil {
+		t.Errorf("Error writing to stdin pipe: %v", err)
+	}
+	w.Close()
+
+	cmd.Flags().Set("fileFlag", "-")
+
+	err = ValidateFlags(cmd, flagContents, argContents)
+	if err != nil {
+		t.Errorf("Expected no error for stdin read, got: %v", err)
+	}
+
+	if argContents["fileFlag"] != "input from stdin" {
+		t.Errorf("Expected 'input from stdin' for fileFlag, got: %v", argContents["fileFlag"])
+	}
+
+	// Test reading from a file path
+	tmpFile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		t.Fatalf("error creating temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Write some content to the file
+	_, err = tmpFile.Write([]byte("content from file"))
+	if err != nil {
+		t.Fatalf("error writing to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	// Set the fileFlag to the path of the temporary file
+	cmd.Flags().Set("fileFlag", tmpFile.Name())
+
+	err = ValidateFlags(cmd, flagContents, argContents)
+	if err != nil {
+		t.Errorf("Expected no error for file read, got: %v", err)
+	}
+	if argContents["fileFlag"] != "content from file" {
+		t.Errorf("Expected 'content from file' for fileFlag, got: %v", argContents["fileFlag"])
+	}
 	// Test for invalid choice
 	cmd.Flags().Set("flag2", "invalid_choice")
 	err = ValidateFlags(cmd, flagContents, argContents)

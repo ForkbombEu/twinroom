@@ -34,6 +34,7 @@ func Example_listCmd() {
 	// Found file: execute_zencode.slang (Path: contracts/test/execute_zencode.slang)
 	// Found file: hello.slang (Path: contracts/test/hello.slang)
 	// Found file: param.slang (Path: contracts/test/param.slang)
+	// Found file: stdin.slang (Path: contracts/test/stdin.slang)
 	// Found file: test.slang (Path: contracts/test/test.slang)
 }
 
@@ -127,4 +128,63 @@ func Example_runCmdWithEnvVariable() {
 
 	// Output:
 	//{"content":"The enviroment variable is set correctly"}
+}
+
+func Example_runCmdWithStdinInput() {
+
+	// Prepare the command to run the slang file
+	cmd1 := exec.Command("cat", "contracts/test/hello.txt")
+	cmd2 := exec.Command("go", "run", "main.go", "test", "stdin")
+	pipe, err := cmd1.StdoutPipe()
+	if err != nil {
+		fmt.Println("Command execution failed:", err)
+	}
+	var out bytes.Buffer
+	cmd2.Stdin = pipe
+	cmd2.Stdout = &out
+	// Step 4: Start cmd1 and cmd2
+	if err := cmd1.Start(); err != nil {
+		fmt.Println("Command execution failed:", err)
+	}
+
+	if err := cmd2.Start(); err != nil {
+		fmt.Println("Command execution failed:", err)
+	}
+
+	// Step 5: Wait for both commands to finish
+	if err := cmd1.Wait(); err != nil {
+		fmt.Println("Command execution failed:", err)
+	}
+
+	if err := cmd2.Wait(); err != nil {
+		fmt.Println("Command execution failed:", err)
+	}
+
+	// Output the results
+	fmt.Print(out.String())
+
+	// Output:
+	//{"file":"Hello World!"}
+}
+
+func Example_runCmdWithFilePath() {
+
+	// Prepare the command to run the slang file
+	cmd := exec.Command("go", "run", "main.go", "test", "stdin", "-f", "contracts/test/hello.txt")
+	// Capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+
+	// Check for errors
+	if err != nil {
+		fmt.Println("Command execution failed:", err)
+		return
+	}
+
+	// Output the results
+	fmt.Print(out.String())
+
+	// Output:
+	//{"file":"Hello World!"}
 }

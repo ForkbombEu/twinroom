@@ -26,12 +26,14 @@ type CommandMetadata struct {
 		Choices     []string `json:"choices,omitempty"`
 		Env         []string `json:"env,omitempty"`
 		Hidden      bool     `json:"hidden,omitempty"`
+		File        bool     `json:"file,omitempty"`
 	} `json:"options"`
 }
 
 type FlagData struct {
 	Choices []string
 	Env     []string
+	File    bool
 }
 
 // LoadAdditionalData loads and validates JSON data for additional fields in SlangroomInput.
@@ -208,6 +210,8 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 
 		if opt.Default != "" {
 			fileCmd.Flags().StringP(flag, shorthand, opt.Default, description)
+		} else if opt.File {
+			fileCmd.Flags().StringP(flag, shorthand, "-", description)
 		} else {
 			fileCmd.Flags().StringP(flag, shorthand, "", description)
 		}
@@ -218,6 +222,7 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 		flagContents[flag] = FlagData{
 			Choices: opt.Choices,
 			Env:     opt.Env,
+			File:    opt.File,
 		}
 
 		if helpText != "" && description != "" {
@@ -233,7 +238,26 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 // does not match an available choice, an error is returned.
 func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]string) error {
 	for flag, content := range flagContents {
+		var err error
 		value, _ := cmd.Flags().GetString(flag)
+		// Check if value should be read from stdin
+		if content.File {
+			var fileContent []byte
+			if value == "-" {
+				fileContent, err = io.ReadAll(os.Stdin)
+				if err != nil {
+					return fmt.Errorf("error reading value for flag %s from stdin: %w", flag, err)
+				}
+			} else if value != "" {
+
+				fileContent, err = os.ReadFile(value)
+				if err != nil {
+					return fmt.Errorf("failed to read file at path %s: %w", value, err)
+				}
+
+			}
+			value = strings.TrimSpace(string(fileContent))
+		}
 
 		if value == "" && len(content.Env) > 0 {
 			// Try reading the value from the environment variables
