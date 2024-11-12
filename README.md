@@ -44,7 +44,7 @@ To list all slangroom files in a specified directory, use the following command:
 ```bash
 ./out/bin/gemini list <folder>
 ```
-If you want to list only embedded filesin the contracts folder, simply run:
+If you want to list only embedded files in the contracts folder, simply run:
 
 ```bash
 ./out/bin/gemini list
@@ -57,21 +57,27 @@ To execute a specific slangroom file, use the following command:
 out/bin/./gemini <folder> <file>
 ```
 
-If the file is embedded, you can also run it directly by providing just the filename:
+If the file is embedded in the `contracts` folder , you can also run it directly by providing just the filename:
 
 
 ```bash
 out/bin/./gemini  <file>
 ```
 
+Or if it is in a subdir of `contracts`:
+
+```bash
+out/bin/./gemini  <subdir> <file>
+```
+
 ### Daemon Mode
 
-Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the -d or --daemon flag:
+Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `-d` or `--daemon` flag:
 
 ```bash
 ./out/bin/gemini -d <folder> <file>
 ```
-If a folder is provided with the -d flag, Gemini will list the available slangroom files via HTTP.
+If a folder is provided with the `-d` flag and the list command, Gemini will list the available slangroom files via HTTP.
 
 ```bash
 ./out/bin/gemini list  -d <folder>
@@ -161,7 +167,7 @@ The metadata file is automatically read by Gemini to generate appropriate argume
     ]
 }
 ```
-
+The parameters passed from CLI will overwrite the same parameter if contained in `filename.metadata.json`
 
 
 ### Examples
