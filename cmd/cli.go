@@ -120,7 +120,7 @@ func addEmbeddedFileCommands() {
 		// Create the command for the file
 		fileCmd := &cobra.Command{
 			Use:   fileCmdName,
-			Short: fmt.Sprintf("Execute the embedded contract %s", file.FileName),
+			Short: fmt.Sprintf("Execute the embedded contract %s", strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))),
 		}
 		var isMetadata bool
 		argContents := make(map[string]string)
