@@ -46,7 +46,7 @@ func init() {
 // It accepts an optional daemon flag to start an HTTP server for listing the files.
 var listCmd = &cobra.Command{
 	Use:   "list [folder]",
-	Short: "List all slangroom files in the folder or list embedded files if no folder is specified",
+	Short: "List all contracts in the folder or list embedded contracts if no folder is specified",
 	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
@@ -62,7 +62,7 @@ var listCmd = &cobra.Command{
 				return
 			}
 			err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
-				fmt.Printf("Found file: %s (Path: %s)\n", file.FileName, file.Path)
+				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
 			})
 			if err != nil {
 				fmt.Println("Error:", err)
@@ -70,7 +70,7 @@ var listCmd = &cobra.Command{
 		} else {
 			// If a folder argument is provided, list files in that folder
 			folder := args[0]
-			fmt.Printf("Listing slangroom files in folder: %s\n", folder)
+			fmt.Printf("Listing contracts in folder: %s\n", folder)
 
 			if daemon {
 				if err := httpserver.StartHTTPServer(folder, "", nil); err != nil {
@@ -82,7 +82,7 @@ var listCmd = &cobra.Command{
 
 			// List slangroom files in the specified folder
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
-				fmt.Printf("Found file: %s (Path: %s)\n", file.FileName, file.Path)
+				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
 			})
 			if err != nil {
 				fmt.Println("Error:", err)
