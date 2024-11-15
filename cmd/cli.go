@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,11 +19,9 @@ import (
 var contracts embed.FS
 var daemon bool
 
-var extension string = ".slang"
+var extension = ".slang"
 
-// rootCmd is the base command when called without any subcommands.
-// It initializes the command tree and is responsible for starting the Gemini CLI.
-
+// runCmd is the base command when called without any subcommands.
 func Execute(embeddedFiles embed.FS) {
 	contracts = embeddedFiles
 
@@ -31,7 +30,7 @@ func Execute(embeddedFiles embed.FS) {
 
 	// Execute the root command
 	if err := runCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }
@@ -48,7 +47,7 @@ var listCmd = &cobra.Command{
 	Use:   "list [folder]",
 	Short: "List all contracts in the folder or list embedded contracts if no folder is specified",
 	Args:  cobra.MaximumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		if len(args) == 0 {
 			// If no folder argument is provided, list embedded files
 			fmt.Println("Listing embedded slangroom files:")
@@ -56,7 +55,7 @@ var listCmd = &cobra.Command{
 			// If the daemon flag is set, start the HTTP server
 			if daemon {
 				if err := httpserver.StartHTTPServer("contracts", "", nil); err != nil {
-					fmt.Printf("Failed to start HTTP server: %v\n", err)
+					log.Printf("Failed to start HTTP server: %v\n", err)
 					os.Exit(1)
 				}
 				return
@@ -65,7 +64,7 @@ var listCmd = &cobra.Command{
 				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
 			})
 			if err != nil {
-				fmt.Println("Error:", err)
+				log.Println("Error:", err)
 			}
 		} else {
 			// If a folder argument is provided, list files in that folder
@@ -74,7 +73,7 @@ var listCmd = &cobra.Command{
 
 			if daemon {
 				if err := httpserver.StartHTTPServer(folder, "", nil); err != nil {
-					fmt.Printf("Failed to start HTTP server: %v\n", err)
+					log.Printf("Failed to start HTTP server: %v\n", err)
 					os.Exit(1)
 				}
 				return
@@ -85,7 +84,7 @@ var listCmd = &cobra.Command{
 				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
 			})
 			if err != nil {
-				fmt.Println("Error:", err)
+				log.Println("Error:", err)
 			}
 		}
 	},
@@ -128,19 +127,25 @@ func addEmbeddedFileCommands() {
 
 		metadataPath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))+".metadata.json")
 		metadata, err := utils.LoadMetadata(&contracts, metadataPath)
-		if err == nil {
+		if err != nil && err.Error() != "metadata file not found" {
+			log.Printf("WARNING: error in metadata for contracts: %s\n", fileCmdName)
+			log.Println(err)
+		} else if err == nil {
 			isMetadata = true
 			// Set command description
 			fileCmd.Short = metadata.Description
-			argContents, flagContents = utils.ConfigureArgumentsAndFlags(fileCmd, metadata)
-			fileCmd.PreRunE = func(cmd *cobra.Command, args []string) error {
+			argContents, flagContents, err = utils.ConfigureArgumentsAndFlags(fileCmd, metadata)
+			if err != nil {
+				log.Printf("Failed to set arguments or flags: %v\n", err)
+				os.Exit(1)
+			}
+			fileCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
 				return utils.ValidateFlags(cmd, flagContents, argContents)
 			}
-
 		}
 
 		// Set the command's run function
-		fileCmd.Run = func(cmd *cobra.Command, args []string) {
+		fileCmd.Run = func(_ *cobra.Command, args []string) {
 			runFileCommand(file, args, metadata, argContents, isMetadata, relativePath)
 		}
 
@@ -149,7 +154,7 @@ func addEmbeddedFileCommands() {
 	})
 
 	if err != nil {
-		fmt.Println("Error adding embedded file commands:", err)
+		log.Println("Error adding embedded file commands:", err)
 	}
 }
 
@@ -159,7 +164,7 @@ var runCmd = &cobra.Command{
 	Use:   "gemini [folder]",
 	Short: "Execute a specific slangroom file in a dynamically specified folder",
 	Args:  cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		folder := args[0]
 		filePath := filepath.Join(args[1:]...)
 		input := slangroom.SlangroomInput{}
@@ -174,12 +179,17 @@ var runCmd = &cobra.Command{
 			if relativeFilePath == filePath {
 				found = true
 				input.Contract = file.Content
-				utils.LoadAdditionalData(filepath.Join(folder, file.Dir), filename, &input)
+				err := utils.LoadAdditionalData(filepath.Join(folder, file.Dir), filename, &input)
+
+				if err != nil {
+					log.Printf("Failed to load data from JSON file: %v\n", err)
+					os.Exit(1)
+				}
 
 				// Start HTTP server if daemon flag is set
 				if daemon {
 					if err := httpserver.StartHTTPServer(folder, filePath, nil); err != nil {
-						fmt.Printf("Failed to start HTTP server: %v\n", err)
+						log.Printf("Failed to start HTTP server: %v\n", err)
 						os.Exit(1)
 					}
 					return
@@ -188,8 +198,8 @@ var runCmd = &cobra.Command{
 				// Execute the slangroom file
 				res, err := slangroom.Exec(input)
 				if err != nil {
-					fmt.Println("Error:", err)
-					fmt.Println(res.Logs)
+					log.Println("Error:", err)
+					log.Println(res.Logs)
 				} else {
 					fmt.Println(res.Output)
 				}
@@ -197,12 +207,12 @@ var runCmd = &cobra.Command{
 		})
 
 		if err != nil {
-			fmt.Println("Error:", err)
+			log.Println("Error:", err)
 			return
 		}
 
 		if !found {
-			fmt.Printf("File %s not found in folder %s\n", filePath, folder)
+			log.Printf("File %s not found in folder %s\n", filePath, folder)
 		}
 	},
 }
@@ -210,7 +220,11 @@ var runCmd = &cobra.Command{
 func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]string, isMetadata bool, relativePath string) {
 	input := slangroom.SlangroomInput{Contract: file.Content}
 	filename := strings.TrimSuffix(file.FileName, extension)
-	utils.LoadAdditionalData(file.Dir, filename, &input)
+	err := utils.LoadAdditionalData(file.Dir, filename, &input)
+	if err != nil {
+		log.Printf("Failed to load data from JSON file: %v\n", err)
+		os.Exit(1)
+	}
 	if isMetadata {
 		for i, arg := range args {
 			if i < len(metadata.Arguments) {
@@ -220,12 +234,12 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 		// Convert argContents to JSON if needed
 		jsonData, err := json.Marshal(argContents)
 		if err != nil {
-			fmt.Println("Error encoding arguments to JSON:", err)
+			log.Println("Error encoding arguments to JSON:", err)
 			return
 		}
 		if input.Data != "" {
 			if input.Data, err = utils.MergeJSON(input.Data, string(jsonData)); err != nil {
-				fmt.Println("Error encoding arguments to JSON:", err)
+				log.Println("Error encoding arguments to JSON:", err)
 				os.Exit(1)
 			}
 		} else {
@@ -235,7 +249,7 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 	// Start HTTP server if daemon flag is set
 	if daemon {
 		if err := httpserver.StartHTTPServer("contracts", relativePath, &input); err != nil {
-			fmt.Printf("Failed to start HTTP server: %v\n", err)
+			log.Printf("Failed to start HTTP server: %v\n", err)
 			os.Exit(1)
 		}
 		return
@@ -244,8 +258,8 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 	// Execute the slangroom file
 	res, err := slangroom.Exec(input)
 	if err != nil {
-		fmt.Println("Error:", err)
-		fmt.Println(res.Logs)
+		log.Println("Error:", err)
+		log.Println(res.Logs)
 	} else {
 		fmt.Println(res.Output)
 	}
