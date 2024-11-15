@@ -44,7 +44,7 @@ To list all slangroom files in a specified directory, use the following command:
 ```bash
 ./out/bin/gemini list <folder>
 ```
-If you want to list only embedded filesin the contracts folder, simply run:
+If you want to list only embedded files in the contracts folder, simply run:
 
 ```bash
 ./out/bin/gemini list
@@ -57,21 +57,27 @@ To execute a specific slangroom file, use the following command:
 out/bin/./gemini <folder> <file>
 ```
 
-If the file is embedded, you can also run it directly by providing just the filename:
+If the file is embedded in the `contracts` folder , you can also run it directly by providing just the filename:
 
 
 ```bash
 out/bin/./gemini  <file>
 ```
 
+Or if it is in a subdir of `contracts`:
+
+```bash
+out/bin/./gemini  <subdir> <file>
+```
+
 ### Daemon Mode
 
-Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the -d or --daemon flag:
+Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `-d` or `--daemon` flag:
 
 ```bash
 ./out/bin/gemini -d <folder> <file>
 ```
-If a folder is provided with the -d flag, Gemini will list the available slangroom files via HTTP.
+If a folder is provided with the `-d` flag and the list command, Gemini will list the available slangroom files via HTTP.
 
 ```bash
 ./out/bin/gemini list  -d <folder>
@@ -104,20 +110,87 @@ hello.keys.json
 hello.extra.json
 ```
 
+### Command Arguments and Flags from `metadata.json`
+
+In addition to the above parameters, Gemini allows you to define custom arguments and flags for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
+
+ * **Arguments**: Custom positional arguments for the command.
+ * **Options**: Custom flags that can be passed to the command.
+
+ #### Structure of `metadata.json`
+
+The metadata file is automatically read by Gemini to generate appropriate arguments and flags when executing embedded contract files. A typical metadata.json structure might look like this:
+
+```json
+{
+    "description": "Example of a command with different arguments and options",
+    "arguments": [
+        {
+            "name": "<username>",
+            "description": "user to login"
+        },
+        {
+            "name": "[password]",
+            "description": "password for user if required"
+        }
+    ],
+    "options": [
+        {
+            "name": "-n, --name <name>"
+        },
+        {
+            "name": "-s, --secret",
+            "hidden": true
+        },
+        {
+            "name": "-t, --timeout <delay>",
+            "description": "timeout in seconds",
+            "default": "60"
+        },
+        {
+            "name": "-p, --port <number>",
+            "description": "port number",
+            "env": [
+                "PORT"
+            ]
+        },
+        {
+            "name": "-D, --drink <size>",
+            "description": "drink size",
+            "choices": [
+                "small",
+                "medium",
+                "large"
+            ]
+        }
+
+    ]
+}
+```
+The parameters passed from CLI will overwrite the same parameter if contained in `filename.metadata.json`
+
+
 ### Examples
 
-List all slang files in the examples folder:
+List all contracts in the examples folder:
 
 ```bash
 ./out/bin/gemini list examples
 ```
 
-Run a specific slang file:
+Run a specific contract:
 
 ```bash
 ./out/bin/gemini examples hello
 ```
-Start the HTTP server to expose the slang files:
+
+Run a contract with arguments and flag:
+
+```bash
+out/bin/gemini test param username -n myname -D small -t 100
+```
+
+Start the HTTP server to expose contract:
 
 ```bash
 ./out/bin/gemini -d examples hello

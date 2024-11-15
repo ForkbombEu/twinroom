@@ -3,6 +3,7 @@ package httpserver
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,8 @@ import (
 	"github.com/forkbombeu/gemini/cmd/utils"
 	"github.com/gorilla/mux"
 )
+
+var port string
 
 // listSlangFilesHandler returns an HTTP handler that lists available slangroom files in the provided directories.
 // It generates an HTML page displaying the slangroom files for each directory.
@@ -54,21 +57,26 @@ func slangFilePageHandler(file fouter.SlangFile) http.HandlerFunc {
 
 // executeSlangFileHandler returns an HTTP handler that executes a slangroom file via a POST request.
 // The handler responds with a JSON output of the result or an error if the execution fails.
-func executeSlangFileHandler(file fouter.SlangFile, baseFolder string) http.HandlerFunc {
+func executeSlangFileHandler(file fouter.SlangFile, baseFolder string, executionData *slangroom.SlangroomInput) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 			return
 		}
+		var input slangroom.SlangroomInput
+		if executionData == nil {
 
-		input := slangroom.SlangroomInput{Contract: file.Content}
+			input.Contract = file.Content
 
-		// Load additional data from JSON files with matching names
-		filename := strings.TrimSuffix(file.FileName, ".slang")
-		err := utils.LoadAdditionalData(filepath.Join(baseFolder, file.Dir), filename, &input)
-		if err != nil {
-			http.Error(w, "Error loading additional data: "+err.Error(), http.StatusInternalServerError)
-			return
+			// Load additional data from JSON files with matching names
+			filename := strings.TrimSuffix(file.FileName, ".slang")
+			err := utils.LoadAdditionalData(filepath.Join(baseFolder, file.Dir), filename, &input)
+			if err != nil {
+				http.Error(w, "Error loading additional data: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			input = *executionData
 		}
 
 		result, err := slangroom.Exec(input)
@@ -89,7 +97,7 @@ func executeSlangFileHandler(file fouter.SlangFile, baseFolder string) http.Hand
 }
 
 // startHTTPServer starts an HTTP server on port 3000 to serve slangroom files from the specified folder.
-func StartHTTPServer(folder string, url string) error {
+func StartHTTPServer(folder string, filePath string, input *slangroom.SlangroomInput) error {
 	r := mux.NewRouter()
 	slangFiles := make(map[string][]string)
 
@@ -97,7 +105,11 @@ func StartHTTPServer(folder string, url string) error {
 		relativePath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName)))
 		slangFiles[file.Dir] = append(slangFiles[file.Dir], relativePath)
 		r.HandleFunc("/slang/"+relativePath, slangFilePageHandler(file)).Methods("GET")
-		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder)).Methods("POST")
+		var executionData *slangroom.SlangroomInput
+		if filePath == relativePath && input != nil {
+			executionData = input
+		}
+		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder, executionData)).Methods("POST")
 	})
 
 	if err != nil {
@@ -106,24 +118,27 @@ func StartHTTPServer(folder string, url string) error {
 
 	r.HandleFunc("/slang/", listSlangFilesHandler(slangFiles)).Methods("GET")
 
-	fmt.Println("Starting HTTP server on :3000")
-	if url != "" {
-		fmt.Printf("You can find the file at: %s\n", url)
-	} else {
-		fmt.Println("Access the contract files at: http://localhost:3000/slang/")
+	// Try binding to port 3000, otherwise bind to a random open port
+	port = "3000"
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		listener, err = net.Listen("tcp", ":0")
+		if err != nil {
+			return fmt.Errorf("error finding an open port: %v", err)
+		}
+		port = fmt.Sprintf("%d", listener.Addr().(*net.TCPAddr).Port)
 	}
 
-	if err := http.ListenAndServe(":3000", r); err != nil {
+	fmt.Printf("Starting HTTP server on :%s\n", port)
+	if filePath != "" {
+		fmt.Printf("You can find the file at: http://localhost:%s/slang/%s", port, filePath)
+	} else {
+		fmt.Printf("Access the contract files at: http://localhost:%s/slang/\n", port)
+	}
+
+	if err := http.Serve(listener, r); err != nil {
 		return fmt.Errorf("error starting HTTP server: %v", err)
 	}
 
 	return nil
-}
-
-// GetSlangFileURL returns the URL for accessing a slangroom file given its folder and file name.
-func GetSlangFileURL(folder string, fileName string) string {
-	relativePath := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	slangFileURL := fmt.Sprintf("http://localhost:3000/slang/%s", relativePath)
-
-	return slangFileURL
 }

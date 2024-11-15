@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ForkbombEu/fouter"
+	slangroom "github.com/dyne/slangroom-exec/bindings/go"
 )
 
 func TestListSlangFilesHandler(t *testing.T) {
@@ -82,7 +83,38 @@ Then print the string 'Hello'`,
 	}
 
 	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file, "")
+	handler := executeSlangFileHandler(file, "", nil)
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %v, got %v", http.StatusOK, rr.Code)
+	}
+
+	var response map[string]interface{}
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatalf("Failed to decode JSON response: %v", err)
+	}
+
+	if response["output"] != `{"output":["Hello"]}` {
+		t.Errorf("Expected output to be 'Hello', got %v", response["output"])
+	}
+}
+func TestExecuteSlangFileHandler_With_Data(t *testing.T) {
+	file := fouter.SlangFile{
+		FileName: "test.slang",
+		Content: `Given nothing
+Then print the string 'Hello'`,
+	}
+	input := slangroom.SlangroomInput{Contract: file.Content}
+	req, err := http.NewRequest("POST", "/slang/execute/test", nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	rr := httptest.NewRecorder()
+	handler := executeSlangFileHandler(file, "", &input)
 
 	handler.ServeHTTP(rr, req)
 
@@ -113,7 +145,7 @@ func TestExecuteSlangFileHandler_MethodNotAllowed(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file, "")
+	handler := executeSlangFileHandler(file, "", nil)
 
 	handler.ServeHTTP(rr, req)
 
@@ -124,19 +156,6 @@ func TestExecuteSlangFileHandler_MethodNotAllowed(t *testing.T) {
 	body := rr.Body.String()
 	if !contains(body, "Invalid request method") {
 		t.Errorf("Expected response to contain 'Invalid request method', got %v", body)
-	}
-}
-
-func TestGetSlangFileURL(t *testing.T) {
-
-	folder := "example_dir"
-	fileName := "test.slang"
-	expectedURL := "http://localhost:3000/slang/test"
-
-	result := GetSlangFileURL(folder, fileName)
-
-	if result != expectedURL {
-		t.Errorf("Expected URL to be %v, got %v", expectedURL, result)
 	}
 }
 

@@ -25,8 +25,14 @@ all: help
 $(BIN):
 	mkdir -p $(BIN)
 
-$(SLANGROOM_EXEC): $(BIN)
-	wget https://github.com/dyne/slangroom-exec/releases/latest/download/slangroom-exec-$(shell uname)-$(shell uname -m) -O $(SLANGROOM_EXEC) && chmod +x $(SLANGROOM_EXEC)
+$(SLANGROOM_EXEC):
+	@if [ ! -f $(SLANGROOM_EXEC) ]; then \
+		echo "Downloading slangroom-exec..."; \
+		mkdir -p $(BIN); \
+		wget https://github.com/dyne/slangroom-exec/releases/latest/download/slangroom-exec-$(shell uname)-$(shell uname -m) -O $(SLANGROOM_EXEC); \
+		chmod +x $(SLANGROOM_EXEC); \
+	fi
+
 
 ## Build:
 build: vendor $(SLANGROOM_EXEC) ## Build your project and put the output binary in out/bin/
