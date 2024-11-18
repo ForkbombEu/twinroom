@@ -172,8 +172,8 @@ func MergeJSON(json1, json2 string) (string, error) {
 }
 
 // ConfigureArgumentsAndFlags configures the command's arguments and flags based on provided metadata,
-func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]string, map[string]FlagData, error) {
-	argContents := make(map[string]string)
+func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]interface{}, map[string]FlagData, error) {
+	argContents := make(map[string]interface{})
 	flagContents := make(map[string]FlagData)
 
 	requiredArgs := 0
@@ -248,7 +248,7 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 // ValidateFlags checks if the flag values passed to the command match any predefined choices and
 // sets corresponding environment variables if specified in the flag's metadata. If a flag's value
 // does not match an available choice, an error is returned.
-func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]string) error {
+func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]interface{}) error {
 	for flag, content := range flagContents {
 		var err error
 		value, _ := cmd.Flags().GetString(flag)
@@ -266,7 +266,15 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 					return fmt.Errorf("failed to read file at path %s: %w", value, err)
 				}
 			}
-			value = strings.TrimSpace(string(fileContent))
+			var jsonContent interface{}
+			err = json.Unmarshal(fileContent, &jsonContent)
+			if err == nil {
+				argContents[flag] = jsonContent
+				value = ""
+			} else {
+				value = strings.TrimSpace(string(fileContent))
+			}
+
 		}
 		if value == "" && len(content.Env) > 0 {
 			// Try reading the value from the environment variables

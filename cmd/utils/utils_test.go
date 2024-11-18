@@ -319,7 +319,7 @@ func TestValidateFlags(t *testing.T) {
 		},
 	}
 
-	argContents := map[string]string{}
+	argContents := make(map[string]interface{})
 
 	// Test for valid choice and check environment variable setting
 	err := cmd.Flags().Set("flag1", "opt1")
@@ -387,7 +387,15 @@ func TestValidateFlags(t *testing.T) {
 		}
 	}()
 	// Write some content to the file
-	_, err = tmpFile.Write([]byte("content from file"))
+	_, err = tmpFile.Write([]byte(`{
+		"test": {
+			"name": "Myname",
+			"data": "somecontent"
+		},
+		[
+		"value1",
+		"value2",
+	]`))
 	if err != nil {
 		t.Fatalf("error writing to temp file: %v", err)
 	}
@@ -405,7 +413,15 @@ func TestValidateFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error for file read, got: %v", err)
 	}
-	if argContents["fileFlag"] != "content from file" {
+	if argContents["fileFlag"] != `{
+		"test": {
+			"name": "Myname",
+			"data": "somecontent"
+		},
+		[
+		"value1",
+		"value2",
+	]` {
 		t.Errorf("Expected 'content from file' for fileFlag, got: %v", argContents["fileFlag"])
 	}
 	// Test for invalid choice

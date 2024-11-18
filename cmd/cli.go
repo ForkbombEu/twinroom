@@ -122,7 +122,7 @@ func addEmbeddedFileCommands() {
 			Short: fmt.Sprintf("Execute the embedded contract %s", strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))),
 		}
 		var isMetadata bool
-		argContents := make(map[string]string)
+		argContents := make(map[string]interface{})
 		flagContents := make(map[string]utils.FlagData)
 
 		metadataPath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))+".metadata.json")
@@ -217,7 +217,7 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]string, isMetadata bool, relativePath string) {
+func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]interface{}, isMetadata bool, relativePath string) {
 	input := slangroom.SlangroomInput{Contract: file.Content}
 	filename := strings.TrimSuffix(file.FileName, extension)
 	err := utils.LoadAdditionalData(file.Dir, filename, &input)
