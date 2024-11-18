@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// CommandMetadata contains the data from the metadata.json
 type CommandMetadata struct {
 	Description string `json:"description"`
 	Arguments   []struct {
@@ -30,6 +32,7 @@ type CommandMetadata struct {
 	} `json:"options"`
 }
 
+// FlagData contains the necessary data for a given flag
 type FlagData struct {
 	Choices []string
 	Env     []string
@@ -50,7 +53,6 @@ func LoadAdditionalData(path string, filename string, input *slangroom.Slangroom
 	}
 
 	for _, field := range fields {
-
 		jsonFile := filepath.Join(path, fmt.Sprintf("%s.%s.json", filename, field.fieldName))
 		if _, err := os.Stat(jsonFile); os.IsNotExist(err) {
 			continue // Skip if file does not exist
@@ -92,9 +94,15 @@ func LoadMetadata(folder *embed.FS, path string) (*CommandMetadata, error) {
 	}
 
 	if err != nil {
+		if os.IsNotExist(err) {
+			// Specific error message for file not found
+			return nil, fmt.Errorf("metadata file not found")
+		}
+		// Generic error for other types of failures
 		return nil, fmt.Errorf("failed to open metadata file: %w", err)
 	}
-	defer file.Close()
+
+	defer checks(file.Close)
 
 	var metadata CommandMetadata
 	if err := json.NewDecoder(file).Decode(&metadata); err != nil {
@@ -127,7 +135,7 @@ func GetArgumentNames(arguments []struct {
 	return names
 }
 
-func IsValidChoice(value string, choices []string) bool {
+func isValidChoice(value string, choices []string) bool {
 	if value == "" {
 		return true
 	}
@@ -139,6 +147,7 @@ func IsValidChoice(value string, choices []string) bool {
 	return false
 }
 
+// MergeJSON combines two JSON strings into one, with keys from the second JSON overwriting those in the first.
 func MergeJSON(json1, json2 string) (string, error) {
 	var map1, map2 map[string]interface{}
 
@@ -163,7 +172,7 @@ func MergeJSON(json1, json2 string) (string, error) {
 }
 
 // ConfigureArgumentsAndFlags configures the command's arguments and flags based on provided metadata,
-func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]string, map[string]FlagData) {
+func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]string, map[string]FlagData, error) {
 	argContents := make(map[string]string)
 	flagContents := make(map[string]FlagData)
 
@@ -172,7 +181,7 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 	for _, arg := range metadata.Arguments {
 		argContents[NormalizeArgumentName(arg.Name)] = ""
 		if strings.HasPrefix(arg.Name, "<") && strings.HasSuffix(arg.Name, ">") {
-			requiredArgs += 1
+			requiredArgs++
 		} else {
 			fileCmd.Args = cobra.MaximumNArgs(len(metadata.Arguments))
 		}
@@ -216,7 +225,10 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 			fileCmd.Flags().StringP(flag, shorthand, "", description)
 		}
 		if opt.Hidden {
-			fileCmd.Flags().MarkHidden(flag)
+			err := fileCmd.Flags().MarkHidden(flag)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error hiding a flag: %v", err)
+			}
 		}
 
 		flagContents[flag] = FlagData{
@@ -230,10 +242,10 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 		}
 	}
 
-	return argContents, flagContents
+	return argContents, flagContents, nil
 }
 
-// validateFlags checks if the flag values passed to the command match any predefined choices and
+// ValidateFlags checks if the flag values passed to the command match any predefined choices and
 // sets corresponding environment variables if specified in the flag's metadata. If a flag's value
 // does not match an available choice, an error is returned.
 func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]string) error {
@@ -249,16 +261,13 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 					return fmt.Errorf("error reading value for flag %s from stdin: %w", flag, err)
 				}
 			} else if value != "" {
-
 				fileContent, err = os.ReadFile(value)
 				if err != nil {
 					return fmt.Errorf("failed to read file at path %s: %w", value, err)
 				}
-
 			}
 			value = strings.TrimSpace(string(fileContent))
 		}
-
 		if value == "" && len(content.Env) > 0 {
 			// Try reading the value from the environment variables
 			for _, envVar := range content.Env {
@@ -272,9 +281,18 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 		if value != "" {
 			argContents[flag] = value
 		}
-		if (content.Choices != nil) && !IsValidChoice(value, content.Choices) {
+		if (content.Choices != nil) && !isValidChoice(value, content.Choices) {
 			return fmt.Errorf("invalid input '%s' for flag: %s. Valid choices are: %v", value, flag, content.Choices)
 		}
 	}
 	return nil
+}
+
+// a functionfor defer error handling
+func checks(fs ...func() error) {
+	for i := len(fs) - 1; i >= 0; i-- {
+		if err := fs[i](); err != nil {
+			log.Println("Error::", err)
+		}
+	}
 }

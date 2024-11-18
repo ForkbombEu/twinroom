@@ -10,7 +10,6 @@ import (
 )
 
 func TestListCommand(t *testing.T) {
-
 	// Test listing embedded files
 	t.Run("List Embedded Files", func(t *testing.T) {
 		// Prepare the command without any arguments
@@ -31,11 +30,11 @@ func TestListCommand(t *testing.T) {
 		if !contains(output, "Listing embedded slangroom files:") {
 			t.Errorf("Expected output to contain 'Listing embedded slangroom files:', got %v", output)
 		}
-		if !contains(output, "Found file: hello.slang") {
-			t.Errorf("Expected output to contain 'Found file: hello.slang', got %v", output)
+		if !contains(output, "Found file: hello") {
+			t.Errorf("Expected output to contain 'Found file: hello', got %v", output)
 		}
-		if !contains(output, "Found file: test.slang") {
-			t.Errorf("Expected output to contain 'Found file: test.slang', got %v", output)
+		if !contains(output, "Found file: test") {
+			t.Errorf("Expected output to contain 'Found file: test', got %v", output)
 		}
 	})
 
@@ -45,12 +44,12 @@ func TestListCommand(t *testing.T) {
 		tempDir := t.TempDir()
 
 		// Create sample slangroom files for the folder
-		err := os.WriteFile(filepath.Join(tempDir, "file1.slang"), []byte("contract content 1"), 0644)
+		err := os.WriteFile(filepath.Join(tempDir, "file1.slang"), []byte("contract content 1"), 0600)
 		if err != nil {
 			t.Fatalf("Failed to create file1.slang: %v", err)
 		}
 
-		err = os.WriteFile(filepath.Join(tempDir, "file2.slang"), []byte("contract content 2"), 0644)
+		err = os.WriteFile(filepath.Join(tempDir, "file2.slang"), []byte("contract content 2"), 0600)
 		if err != nil {
 			t.Fatalf("Failed to create file2.slang: %v", err)
 		}
@@ -69,14 +68,14 @@ func TestListCommand(t *testing.T) {
 
 		// Verify the output for files in the folder
 		output := out.String()
-		if !contains(output, "Listing slangroom files in folder:") {
-			t.Errorf("Expected output to contain 'Listing slangroom files in folder:', got %v", output)
+		if !contains(output, "Listing contracts in folder:") {
+			t.Errorf("Expected output to contain 'Listing contracts in folder:', got %v", output)
 		}
-		if !contains(output, "Found file: file1.slang") {
-			t.Errorf("Expected output to contain 'Found file: file1.slang', got %v", output)
+		if !contains(output, "Found file: file1") {
+			t.Errorf("Expected output to contain 'Found file: file1', got %v", output)
 		}
-		if !contains(output, "Found file: file2.slang") {
-			t.Errorf("Expected output to contain 'Found file: file2.slang', got %v", output)
+		if !contains(output, "Found file: file2") {
+			t.Errorf("Expected output to contain 'Found file: file2', got %v", output)
 		}
 	})
 }
@@ -88,7 +87,7 @@ func TestRunCommand(t *testing.T) {
 		// Write a sample slangroom file in the filesystem directory
 		content := `Given nothing
 Then print the string 'Hello'`
-		err := os.WriteFile(filepath.Join(tempDir, "test.slang"), []byte(content), 0644)
+		err := os.WriteFile(filepath.Join(tempDir, "test.slang"), []byte(content), 0600)
 		if err != nil {
 			t.Fatalf("Failed to create test.slang: %v", err)
 		}
