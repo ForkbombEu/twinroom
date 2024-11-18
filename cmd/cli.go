@@ -161,7 +161,7 @@ func addEmbeddedFileCommands() {
 // runCmd is a command that executes a specific slangroom file from a given folder.
 // It accepts a folder and file path and can optionally start an HTTP server if the daemon flag is set.
 var runCmd = &cobra.Command{
-	Use:   "gemini [folder]",
+	Use:   filepath.Base(os.Args[0]) + " [folder]",
 	Short: "Execute a specific slangroom file in a dynamically specified folder",
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
