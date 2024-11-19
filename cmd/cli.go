@@ -125,6 +125,8 @@ func addEmbeddedFileCommands() {
 		argContents := make(map[string]interface{})
 		flagContents := make(map[string]utils.FlagData)
 
+		input := slangroom.SlangroomInput{Contract: file.Content}
+
 		metadataPath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))+".metadata.json")
 		metadata, err := utils.LoadMetadata(&contracts, metadataPath)
 		if err != nil && err.Error() != "metadata file not found" {
@@ -140,13 +142,13 @@ func addEmbeddedFileCommands() {
 				os.Exit(1)
 			}
 			fileCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
-				return utils.ValidateFlags(cmd, flagContents, argContents)
+				return utils.ValidateFlags(cmd, flagContents, argContents, &input)
 			}
 		}
 
 		// Set the command's run function
 		fileCmd.Run = func(_ *cobra.Command, args []string) {
-			runFileCommand(file, args, metadata, argContents, isMetadata, relativePath)
+			runFileCommand(file, args, metadata, argContents, isMetadata, relativePath, &input)
 		}
 
 		// Add the file command to its directory's command
@@ -217,10 +219,9 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]interface{}, isMetadata bool, relativePath string) {
-	input := slangroom.SlangroomInput{Contract: file.Content}
+func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]interface{}, isMetadata bool, relativePath string, input *slangroom.SlangroomInput) {
 	filename := strings.TrimSuffix(file.FileName, extension)
-	err := utils.LoadAdditionalData(file.Dir, filename, &input)
+	err := utils.LoadAdditionalData(file.Dir, filename, input)
 	if err != nil {
 		log.Printf("Failed to load data from JSON file: %v\n", err)
 		os.Exit(1)
@@ -248,7 +249,7 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 	}
 	// Start HTTP server if daemon flag is set
 	if daemon {
-		if err := httpserver.StartHTTPServer("contracts", relativePath, &input); err != nil {
+		if err := httpserver.StartHTTPServer("contracts", relativePath, input); err != nil {
 			log.Printf("Failed to start HTTP server: %v\n", err)
 			os.Exit(1)
 		}
@@ -256,7 +257,7 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 	}
 
 	// Execute the slangroom file
-	res, err := slangroom.Exec(input)
+	res, err := slangroom.Exec(*input)
 	if err != nil {
 		log.Println("Error:", err)
 		log.Println(res.Logs)

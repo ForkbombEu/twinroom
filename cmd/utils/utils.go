@@ -29,6 +29,7 @@ type CommandMetadata struct {
 		Env         []string `json:"env,omitempty"`
 		Hidden      bool     `json:"hidden,omitempty"`
 		File        bool     `json:"file,omitempty"`
+		RawData     bool     `json:"rawdata,omitempty"`
 	} `json:"options"`
 }
 
@@ -36,7 +37,7 @@ type CommandMetadata struct {
 type FlagData struct {
 	Choices []string
 	Env     []string
-	File    bool
+	File    [2]bool
 }
 
 // LoadAdditionalData loads and validates JSON data for additional fields in SlangroomInput.
@@ -234,7 +235,7 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 		flagContents[flag] = FlagData{
 			Choices: opt.Choices,
 			Env:     opt.Env,
-			File:    opt.File,
+			File:    [2]bool{opt.File, opt.RawData},
 		}
 
 		if helpText != "" && description != "" {
@@ -248,12 +249,12 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 // ValidateFlags checks if the flag values passed to the command match any predefined choices and
 // sets corresponding environment variables if specified in the flag's metadata. If a flag's value
 // does not match an available choice, an error is returned.
-func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]interface{}) error {
+func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]interface{}, input *slangroom.SlangroomInput) error {
 	for flag, content := range flagContents {
 		var err error
 		value, _ := cmd.Flags().GetString(flag)
 		// Check if value should be read from stdin
-		if content.File {
+		if content.File[0] {
 			var fileContent []byte
 			if value == "-" {
 				fileContent, err = io.ReadAll(os.Stdin)
@@ -267,14 +268,27 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 				}
 			}
 			var jsonContent interface{}
-			err = json.Unmarshal(fileContent, &jsonContent)
-			if err == nil {
-				argContents[flag] = jsonContent
+			if !content.File[1] {
+				if err := validateJSON(fileContent); err != nil {
+					return fmt.Errorf("invalid JSON in %s: %w", flag, err)
+				}
+				if input.Data != "" {
+					if input.Data, err = MergeJSON(input.Data, string(fileContent)); err != nil {
+						log.Println("Error encoding arguments to JSON:", err)
+						os.Exit(1)
+					}
+				} else {
+					input.Data = string(fileContent)
+				}
 				value = ""
 			} else {
-				value = strings.TrimSpace(string(fileContent))
+				if err = json.Unmarshal(fileContent, &jsonContent); err == nil {
+					argContents[flag] = jsonContent
+					value = ""
+				} else {
+					value = strings.TrimSpace(string(fileContent))
+				}
 			}
-
 		}
 		if value == "" && len(content.Env) > 0 {
 			// Try reading the value from the environment variables
