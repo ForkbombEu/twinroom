@@ -471,5 +471,4 @@ func TestValidateFlags(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error for invalid flag choice, got: nil")
 	}
-
 }
