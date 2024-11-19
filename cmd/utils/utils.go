@@ -217,11 +217,12 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 		if len(opt.Choices) > 0 {
 			description += fmt.Sprintf(" (Choices: %v)", opt.Choices)
 		}
+		if opt.File {
+			description += ` ("-" for read from stdin)`
+		}
 
 		if opt.Default != "" {
 			fileCmd.Flags().StringP(flag, shorthand, opt.Default, description)
-		} else if opt.File {
-			fileCmd.Flags().StringP(flag, shorthand, "-", description)
 		} else {
 			fileCmd.Flags().StringP(flag, shorthand, "", description)
 		}

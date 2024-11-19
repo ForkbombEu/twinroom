@@ -3,7 +3,7 @@
     "options": [
         {
             "name": "-f, --file <file>",
-            "description": "file to read if you pass - the stdin is read instead",
+            "description": "file to read",
             "file": true,
             "rawdata": true
         }
