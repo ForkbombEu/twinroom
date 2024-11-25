@@ -169,6 +169,7 @@ func TestLoadMetadata(t *testing.T) {
 			Env         []string `json:"env,omitempty"`
 			Hidden      bool     `json:"hidden,omitempty"`
 			File        bool     `json:"file,omitempty"`
+			RawData     bool     `json:"rawdata,omitempty"`
 		}{
 			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}},
 		},
@@ -273,6 +274,7 @@ func TestConfigureArgumentsAndFlags(t *testing.T) {
 			Env         []string `json:"env,omitempty"`
 			Hidden      bool     `json:"hidden,omitempty"`
 			File        bool     `json:"file,omitempty"`
+			RawData     bool     `json:"rawdata,omitempty"`
 		}{
 			{Name: "--flag1", Description: "Test flag", Default: "default_value"},
 		},
@@ -315,11 +317,11 @@ func TestValidateFlags(t *testing.T) {
 			Env: []string{"TEST_FLAG_ENV_VAR"},
 		},
 		"fileFlag": {
-			File: true,
+			File: [2]bool{true, true},
 		},
 	}
 
-	argContents := map[string]string{}
+	argContents := make(map[string]interface{})
 
 	// Test for valid choice and check environment variable setting
 	err := cmd.Flags().Set("flag1", "opt1")
@@ -334,7 +336,7 @@ func TestValidateFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error setting test env variable: %v", err)
 	}
-	err = ValidateFlags(cmd, flagContents, argContents)
+	err = ValidateFlags(cmd, flagContents, argContents, nil)
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
@@ -366,7 +368,7 @@ func TestValidateFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error setting test flag: %v", err)
 	}
-	err = ValidateFlags(cmd, flagContents, argContents)
+	err = ValidateFlags(cmd, flagContents, argContents, nil)
 	if err != nil {
 		t.Errorf("Expected no error for stdin read, got: %v", err)
 	}
@@ -375,7 +377,7 @@ func TestValidateFlags(t *testing.T) {
 		t.Errorf("Expected 'input from stdin' for fileFlag, got: %v", argContents["fileFlag"])
 	}
 
-	// Test reading from a file path
+	// Test reading raw data from a file path
 	tmpFile, err := os.CreateTemp("", "testfile")
 	if err != nil {
 		t.Fatalf("error creating temp file: %v", err)
@@ -401,19 +403,71 @@ func TestValidateFlags(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error setting test flag: %v", err)
 	}
-	err = ValidateFlags(cmd, flagContents, argContents)
+	err = ValidateFlags(cmd, flagContents, argContents, nil)
 	if err != nil {
 		t.Errorf("Expected no error for file read, got: %v", err)
 	}
 	if argContents["fileFlag"] != "content from file" {
 		t.Errorf("Expected 'content from file' for fileFlag, got: %v", argContents["fileFlag"])
 	}
+	//test reading from a json
+
+	cmd.Flags().String("jsonFlag", "", "")
+	flagContents["jsonFlag"] = FlagData{
+		File: [2]bool{true, false},
+	}
+	input := slangroom.SlangroomInput{}
+	jsonFile, err := os.CreateTemp("", "testfile.json")
+	if err != nil {
+		t.Fatalf("error creating temp file: %v", err)
+	}
+	defer func() {
+		err := os.Remove(jsonFile.Name())
+		if err != nil {
+			t.Fatalf("error removing temp file: %v", err)
+		}
+	}()
+
+	expected := `{
+    "test": {
+        "name": "Myname",
+        "data": "somecontent"
+    },
+    "array": [
+        "value1",
+        "value2"
+    ]
+}`
+	// Write some content to the file
+	_, err = jsonFile.Write([]byte(expected))
+	if err != nil {
+		t.Fatalf("error writing to temp file: %v", err)
+	}
+	err = jsonFile.Close()
+	if err != nil {
+		t.Fatalf("error creating temp file: %v", err)
+	}
+
+	// Set the jsonFlag to the path of the temporary file
+	err = cmd.Flags().Set("jsonFlag", jsonFile.Name())
+	if err != nil {
+		t.Errorf("Unexpected error setting test flag: %v", err)
+	}
+	err = ValidateFlags(cmd, flagContents, argContents, &input)
+	if err != nil {
+		t.Errorf("Expected no error for file read, got: %v", err)
+	}
+
+	if input.Data != expected {
+		t.Errorf("Expected %s for jsonFlag, got: %v", expected, input.Data)
+	}
+
 	// Test for invalid choice
 	err = cmd.Flags().Set("flag2", "invalid_choice")
 	if err != nil {
 		t.Errorf("Unexpected error setting test flag: %v", err)
 	}
-	err = ValidateFlags(cmd, flagContents, argContents)
+	err = ValidateFlags(cmd, flagContents, argContents, nil)
 	if err == nil {
 		t.Errorf("Expected error for invalid flag choice, got: nil")
 	}

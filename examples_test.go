@@ -133,7 +133,7 @@ func Example_runCmdWithEnvVariable() {
 func Example_runCmdWithStdinInput() {
 	// Prepare the command to run the slang file
 	cmd1 := exec.Command("cat", "contracts/test/hello.txt")
-	cmd2 := exec.Command("go", "run", "main.go", "test", "stdin")
+	cmd2 := exec.Command("go", "run", "main.go", "test", "stdin", "-f", "-")
 	pipe, err := cmd1.StdoutPipe()
 	if err != nil {
 		log.Println("Command execution failed:", err)

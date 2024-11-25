@@ -29,6 +29,7 @@ type CommandMetadata struct {
 		Env         []string `json:"env,omitempty"`
 		Hidden      bool     `json:"hidden,omitempty"`
 		File        bool     `json:"file,omitempty"`
+		RawData     bool     `json:"rawdata,omitempty"`
 	} `json:"options"`
 }
 
@@ -36,7 +37,7 @@ type CommandMetadata struct {
 type FlagData struct {
 	Choices []string
 	Env     []string
-	File    bool
+	File    [2]bool
 }
 
 // LoadAdditionalData loads and validates JSON data for additional fields in SlangroomInput.
@@ -172,8 +173,8 @@ func MergeJSON(json1, json2 string) (string, error) {
 }
 
 // ConfigureArgumentsAndFlags configures the command's arguments and flags based on provided metadata,
-func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]string, map[string]FlagData, error) {
-	argContents := make(map[string]string)
+func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]interface{}, map[string]FlagData, error) {
+	argContents := make(map[string]interface{})
 	flagContents := make(map[string]FlagData)
 
 	requiredArgs := 0
@@ -216,11 +217,12 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 		if len(opt.Choices) > 0 {
 			description += fmt.Sprintf(" (Choices: %v)", opt.Choices)
 		}
+		if opt.File {
+			description += ` ("-" for read from stdin)`
+		}
 
 		if opt.Default != "" {
 			fileCmd.Flags().StringP(flag, shorthand, opt.Default, description)
-		} else if opt.File {
-			fileCmd.Flags().StringP(flag, shorthand, "-", description)
 		} else {
 			fileCmd.Flags().StringP(flag, shorthand, "", description)
 		}
@@ -234,7 +236,7 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 		flagContents[flag] = FlagData{
 			Choices: opt.Choices,
 			Env:     opt.Env,
-			File:    opt.File,
+			File:    [2]bool{opt.File, opt.RawData},
 		}
 
 		if helpText != "" && description != "" {
@@ -248,12 +250,12 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 // ValidateFlags checks if the flag values passed to the command match any predefined choices and
 // sets corresponding environment variables if specified in the flag's metadata. If a flag's value
 // does not match an available choice, an error is returned.
-func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]string) error {
+func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argContents map[string]interface{}, input *slangroom.SlangroomInput) error {
 	for flag, content := range flagContents {
 		var err error
 		value, _ := cmd.Flags().GetString(flag)
 		// Check if value should be read from stdin
-		if content.File {
+		if content.File[0] {
 			var fileContent []byte
 			if value == "-" {
 				fileContent, err = io.ReadAll(os.Stdin)
@@ -266,7 +268,28 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 					return fmt.Errorf("failed to read file at path %s: %w", value, err)
 				}
 			}
-			value = strings.TrimSpace(string(fileContent))
+			var jsonContent interface{}
+			if !content.File[1] {
+				if err := validateJSON(fileContent); err != nil {
+					return fmt.Errorf("invalid JSON in %s: %w", flag, err)
+				}
+				if input.Data != "" {
+					if input.Data, err = MergeJSON(input.Data, string(fileContent)); err != nil {
+						log.Println("Error encoding arguments to JSON:", err)
+						os.Exit(1)
+					}
+				} else {
+					input.Data = string(fileContent)
+				}
+				value = ""
+			} else {
+				if err = json.Unmarshal(fileContent, &jsonContent); err == nil {
+					argContents[flag] = jsonContent
+					value = ""
+				} else {
+					value = strings.TrimSpace(string(fileContent))
+				}
+			}
 		}
 		if value == "" && len(content.Env) > 0 {
 			// Try reading the value from the environment variables

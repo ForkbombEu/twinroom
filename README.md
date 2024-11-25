@@ -162,12 +162,33 @@ The metadata file is automatically read by Gemini to generate appropriate argume
                 "medium",
                 "large"
             ]
-        }
-
+        },
+        {
+            "name": "-f, --file <file>",
+            "description": "file to read if you pass - the stdin is read instead",
+            "file": true,
+            "rawdata": true
+        },
     ]
 }
 ```
-The parameters passed from CLI will overwrite the same parameter if contained in `filename.metadata.json`
+#### Field Descriptions:
+
+* **description**: A text description of the command, explaining its purpose or behavior.
+* **arguments**:
+    * ***name***: The name of the argument. Use angle brackets (`<arg>`) for required arguments and square brackets (`[arg]`) for optional ones.
+    * ***description(optional)***: A brief explanation of what the argument represents or its purpose.
+* **options**:
+    * ***name***: The flag name(s), including shorthand (`-n`) and long-form (`--name`) options.
+    * ***hidden (optional)***: If true, the flag is hidden from the help menu.
+    * ***description (optional)***: A brief explanation of the flag’s purpose.
+    * ***default (optional)***: The default value for the flag if not explicitly provided.
+    * ***env (optional)***: A list of environment variable names that can be used as fallback values for the flag.
+    * ***choices (optional)***: An array of allowed values for the flag, ensuring users provide a valid input.
+    * ***file (optional)***:  If set to `true`, the flag requires a JSON file path. The file's contents will be added to the slangroom input data.
+    * ***rawdata (optional)***:  If set to true alongside `file: true`, the contents of the file will be added as raw data, with the flag name serving as the key.
+
+All values provided through arguments and flags are added to the slangroom input data as key-value pairs in the format `"flag_name": "value"`. If a parameter is present in both the CLI input and the corresponding `filename.data.json` file, the CLI input will take precedence, overwriting the value in the JSON file.
 
 
 ### Examples
