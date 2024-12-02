@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,13 +18,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 )
-
-type Introspection map[string]struct {
-	Encoding string `json:"encoding"`
-	Missing  bool   `json:"missing"`
-	Name     string `json:"name"`
-	Zentype  string `json:"zentype"`
-}
 
 type errorResponse struct {
 	Message []string `json:"message"`
@@ -51,7 +45,13 @@ func GenerateOpenAPIRouter(ctx context.Context, contracts *embed.FS, basePath st
 			},
 		},
 	})
-
+	okHandler := func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			log.Fatal("unexpected error:", err)
+		}
+	}
 	err := fouter.CreateFileRouter("", contracts, basePath, func(file fouter.SlangFile) {
 		relativePath := strings.TrimPrefix(filepath.Join(file.Dir, file.FileName), basePath+"/")
 		relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
@@ -68,13 +68,11 @@ func GenerateOpenAPIRouter(ctx context.Context, contracts *embed.FS, basePath st
 		} else {
 			introspectionData, err = slangroom.Introspect(file.Content)
 			if err != nil {
-				log.Fatal("Unexpected error during introspection:", err)
+				log.Fatal("unexpected error during introspection:", err)
 			}
 			dynamicStruct, _ = utils.GenerateStruct(utils.CommandMetadata{}, introspectionData)
 		}
-		router.AddRoute(http.MethodPost, "/"+relativePath, func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		}, swagger.Definitions{
+		_, err = router.AddRoute(http.MethodPost, "/"+relativePath, okHandler, swagger.Definitions{
 			Tags: []string{"📑 Zencodes"},
 			RequestBody: &swagger.ContentValue{
 				Content: swagger.Content{
@@ -97,13 +95,82 @@ func GenerateOpenAPIRouter(ctx context.Context, contracts *embed.FS, basePath st
 			},
 			Description: fmt.Sprintf("<pre>%s</pre>", file.Content),
 		})
+		if err != nil {
+			log.Fatal("error creating file router", err)
+		}
+		_, err = router.AddRoute(http.MethodGet, "/"+relativePath, okHandler, swagger.Definitions{
+			Tags: []string{"📑 Zencodes"},
+			Querystring: func() swagger.ParameterValue {
+				queryParameters := swagger.ParameterValue{}
+				if metadata != nil {
+					// Add arguments as query parameters
+					for _, arg := range metadata.Arguments {
+						name := utils.NormalizeArgumentName(arg.Name)
+						queryParameters[name] = swagger.Parameter{
+							Schema: &swagger.Schema{
+								Value:                     utils.CreateDefaultValue(arg.Type),
+								AllowAdditionalProperties: true,
+							},
+							Description: arg.Description,
+						}
+					}
+
+					// Add options as query parameters
+					for _, opt := range metadata.Options {
+						name := utils.GetFlagName(opt.Name)
+						queryParameters[name] = swagger.Parameter{
+							Schema: &swagger.Schema{
+								Value:                     utils.CreateDefaultValue(opt.Type),
+								AllowAdditionalProperties: true,
+							},
+							Description: opt.Description,
+						}
+					}
+				}
+				if introspectionData != "" {
+					var introspection utils.Introspection
+					if err := json.Unmarshal([]byte(introspectionData), &introspection); err == nil {
+						for _, info := range introspection {
+							queryParameters[info.Name] = swagger.Parameter{
+								Schema: &swagger.Schema{
+									Value:                     utils.CreateDefaultValue(info.Encoding),
+									AllowAdditionalProperties: true,
+								},
+								Description: fmt.Sprintf("The %s", info.Name),
+							}
+						}
+					}
+				}
+				return queryParameters
+			}(),
+			Responses: map[int]swagger.ContentValue{
+				200: {
+					Content: swagger.Content{
+						"application/json": {Value: &outputResponse{}, AllowAdditionalProperties: true},
+					},
+					Description: "The slangroom execution output, splitted by newline",
+				},
+				500: {
+					Content: swagger.Content{
+						"application/json": {Value: &errorResponse{}, AllowAdditionalProperties: true},
+					},
+					Description: "Slangroom execution error",
+				},
+			},
+			Description: fmt.Sprintf("<pre>%s</pre>", file.Content),
+		})
+		if err != nil {
+			log.Fatal("error creating file router", err)
+		}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating file router: %v", err)
 	}
 
 	// Expose OpenAPI documentation
-	router.GenerateAndExposeOpenapi()
-
+	err = router.GenerateAndExposeOpenapi()
+	if err != nil {
+		return nil, fmt.Errorf("error creating opeanpapi spec: %v", err)
+	}
 	return muxRouter, nil
 }
