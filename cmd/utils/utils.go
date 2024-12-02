@@ -46,6 +46,7 @@ type FlagData struct {
 	File    [2]bool
 }
 
+// Introspection contains the data coming from zenroom introspection
 type Introspection map[string]struct {
 	Encoding string `json:"encoding"`
 	Missing  bool   `json:"missing"`
@@ -150,6 +151,7 @@ func GetArgumentNames(arguments []struct {
 	return names
 }
 
+// function to retrieve only the name of a flag
 func GetFlagName(flagStr string) string {
 	// Split the flag string by commas
 	names := strings.Split(flagStr, ", ")
@@ -341,6 +343,7 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 	return nil
 }
 
+// map a string representing a type to the type itself
 func MapTypeToGoType(typeStr string) reflect.Type {
 	switch strings.ToLower(typeStr) {
 	case "string":
@@ -356,6 +359,7 @@ func MapTypeToGoType(typeStr string) reflect.Type {
 	}
 }
 
+// returns the default value from a given type
 func CreateDefaultValue(typeStr string) interface{} {
 	switch strings.ToLower(typeStr) {
 	case "string":
@@ -371,6 +375,7 @@ func CreateDefaultValue(typeStr string) interface{} {
 	}
 }
 
+// Function that dynamically generates a go structure from introspection or metadata
 func GenerateStruct(metadata CommandMetadata, introspectionData string) (interface{}, error) {
 	var fields []reflect.StructField
 	title := cases.Title(language.English)
