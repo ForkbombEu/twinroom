@@ -4,7 +4,8 @@
         {
             "name": "-f, --file <file>",
             "description": "file to read",
-            "file": true
+            "file": true,
+            "rawdata": true
 
         }
     ]
