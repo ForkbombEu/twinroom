@@ -1,6 +1,8 @@
 package httpserver
 
 import (
+	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -12,10 +14,7 @@ import (
 	"github.com/ForkbombEu/fouter"
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
 	"github.com/forkbombeu/gemini/cmd/utils"
-	"github.com/gorilla/mux"
 )
-
-var port string
 
 // listSlangFilesHandler returns an HTTP handler that lists available slangroom files in the provided directories.
 // It generates an HTML page displaying the slangroom files for each directory.
@@ -118,29 +117,35 @@ func executeSlangFileHandler(file fouter.SlangFile, baseFolder string, execution
 }
 
 // startHTTPServer starts an HTTP server on port 3000 to serve slangroom files from the specified folder.
-func StartHTTPServer(folder string, filePath string, input *slangroom.SlangroomInput) error {
-	r := mux.NewRouter()
-	slangFiles := make(map[string][]string)
+func StartHTTPServer(folder string, filePath string, input *slangroom.SlangroomInput, contracts *embed.FS, embeddedPath string) error {
+	ctx := context.Background()
 
-	err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
+	// Generate OpenAPI router
+	mainRouter, err := GenerateOpenAPIRouter(ctx, contracts, embeddedPath)
+	if err != nil {
+		return fmt.Errorf("error generating OpenAPI router: %v", err)
+	}
+
+	slangFiles := make(map[string][]string)
+	err = fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
 		relativePath := filepath.Join(file.Dir, strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName)))
 		slangFiles[file.Dir] = append(slangFiles[file.Dir], relativePath)
-		r.HandleFunc("/slang/"+relativePath, slangFilePageHandler(file)).Methods("GET")
+		mainRouter.HandleFunc("/slang/"+relativePath, slangFilePageHandler(file)).Methods("GET")
 		var executionData *slangroom.SlangroomInput
 		if filePath == relativePath && input != nil {
 			executionData = input
 		}
-		r.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder, executionData)).Methods("POST")
+		mainRouter.HandleFunc("/slang/execute/"+relativePath, executeSlangFileHandler(file, folder, executionData)).Methods("POST")
 	})
-
 	if err != nil {
 		return fmt.Errorf("error setting up file router: %v", err)
 	}
 
-	r.HandleFunc("/slang/", listSlangFilesHandler(slangFiles)).Methods("GET")
+	// Add a route for listing slang files
+	mainRouter.HandleFunc("/slang/", listSlangFilesHandler(slangFiles)).Methods("GET")
 
-	// Try binding to port 3000, otherwise bind to a random open port
-	port = "3000"
+	// Start server on port 3000
+	port := "3000"
 	listener, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		listener, err = net.Listen("tcp", "localhost:0")
@@ -151,13 +156,17 @@ func StartHTTPServer(folder string, filePath string, input *slangroom.SlangroomI
 	}
 
 	fmt.Printf("Starting HTTP server on :%s\n", port)
+	fmt.Printf("Access OpenAPI documentation at: http://localhost:%s/documentation/json\n", port)
+
 	if filePath != "" {
-		fmt.Printf("You can find the file at: http://localhost:%s/slang/%s", port, filePath)
+		fmt.Printf("You can find the file at: http://localhost:%s/slang/%s\n", port, filePath)
 	} else {
 		fmt.Printf("Access the contract files at: http://localhost:%s/slang/\n", port)
 	}
+
+	// Start the HTTP server
 	server := &http.Server{
-		Handler:      r,
+		Handler:      mainRouter,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,

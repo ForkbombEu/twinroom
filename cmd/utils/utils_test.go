@@ -157,9 +157,10 @@ func TestLoadMetadata(t *testing.T) {
 		Arguments: []struct {
 			Name        string `json:"name"`
 			Description string `json:"description,omitempty"`
+			Type        string `json:"type,omitempty"`
 		}{
 			{Name: "arg1", Description: "Argument 1 description"},
-			{Name: "arg2", Description: "Argument 2 description"},
+			{Name: "arg2", Description: "Argument 2 description", Type: "integer"},
 		},
 		Options: []struct {
 			Name        string   `json:"name"`
@@ -170,8 +171,9 @@ func TestLoadMetadata(t *testing.T) {
 			Hidden      bool     `json:"hidden,omitempty"`
 			File        bool     `json:"file,omitempty"`
 			RawData     bool     `json:"rawdata,omitempty"`
+			Type        string   `json:"type,omitempty"`
 		}{
-			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}},
+			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}, Type: "string"},
 		},
 	}
 	// Create a temporary directory
@@ -262,6 +264,7 @@ func TestConfigureArgumentsAndFlags(t *testing.T) {
 		Arguments: []struct {
 			Name        string `json:"name"`
 			Description string `json:"description,omitempty"`
+			Type        string `json:"type,omitempty"`
 		}{
 			{Name: "<arg1>", Description: "Required argument"},
 			{Name: "[arg2]", Description: "Optional argument"},
@@ -275,6 +278,7 @@ func TestConfigureArgumentsAndFlags(t *testing.T) {
 			Hidden      bool     `json:"hidden,omitempty"`
 			File        bool     `json:"file,omitempty"`
 			RawData     bool     `json:"rawdata,omitempty"`
+			Type        string   `json:"type,omitempty"`
 		}{
 			{Name: "--flag1", Description: "Test flag", Default: "default_value"},
 		},

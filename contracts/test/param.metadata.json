@@ -21,7 +21,8 @@
         {
             "name": "-t, --timeout <delay>",
             "description": "timeout in seconds",
-            "default": "60"
+            "default": "60",
+            "type": "number"
         },
         {
             "name": "-p, --port <number>",

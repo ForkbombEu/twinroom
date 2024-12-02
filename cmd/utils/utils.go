@@ -8,7 +8,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
 	"github.com/spf13/cobra"
@@ -20,6 +24,7 @@ type CommandMetadata struct {
 	Arguments   []struct {
 		Name        string `json:"name"`
 		Description string `json:"description,omitempty"`
+		Type        string `json:"type,omitempty"`
 	} `json:"arguments"`
 	Options []struct {
 		Name        string   `json:"name"`
@@ -30,6 +35,7 @@ type CommandMetadata struct {
 		Hidden      bool     `json:"hidden,omitempty"`
 		File        bool     `json:"file,omitempty"`
 		RawData     bool     `json:"rawdata,omitempty"`
+		Type        string   `json:"type,omitempty"`
 	} `json:"options"`
 }
 
@@ -38,6 +44,13 @@ type FlagData struct {
 	Choices []string
 	Env     []string
 	File    [2]bool
+}
+
+type Introspection map[string]struct {
+	Encoding string `json:"encoding"`
+	Missing  bool   `json:"missing"`
+	Name     string `json:"name"`
+	Zentype  string `json:"zentype"`
 }
 
 // LoadAdditionalData loads and validates JSON data for additional fields in SlangroomInput.
@@ -128,12 +141,29 @@ func NormalizeArgumentName(name string) string {
 func GetArgumentNames(arguments []struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	Type        string `json:"type,omitempty"`
 }) []string {
 	names := make([]string, len(arguments))
 	for i, arg := range arguments {
 		names[i] = arg.Name
 	}
 	return names
+}
+
+func GetFlagName(flagStr string) string {
+	// Split the flag string by commas
+	names := strings.Split(flagStr, ", ")
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if strings.HasPrefix(name, "--") {
+			flagParts := strings.Fields(strings.TrimPrefix(name, "--"))
+			return flagParts[0]
+		}
+		if strings.HasPrefix(name, "-") && len(name) == 1 {
+			return strings.TrimPrefix(name, "-")
+		}
+	}
+	return ""
 }
 
 func isValidChoice(value string, choices []string) bool {
@@ -309,6 +339,92 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 		}
 	}
 	return nil
+}
+
+func MapTypeToGoType(typeStr string) reflect.Type {
+	switch strings.ToLower(typeStr) {
+	case "string":
+		return reflect.TypeOf("")
+	case "integer", "int":
+		return reflect.TypeOf(0)
+	case "number", "float", "float64":
+		return reflect.TypeOf(0.0)
+	case "boolean", "bool":
+		return reflect.TypeOf(false)
+	default:
+		return reflect.TypeOf("") // Default to string if type is unknown
+	}
+}
+
+func CreateDefaultValue(typeStr string) interface{} {
+	switch strings.ToLower(typeStr) {
+	case "string":
+		return ""
+	case "integer", "int":
+		return 0
+	case "number", "float", "float64":
+		return 0.0
+	case "boolean", "bool":
+		return false
+	default:
+		return "" // Default to string if type is unknown
+	}
+}
+
+func GenerateStruct(metadata CommandMetadata, introspectionData string) (interface{}, error) {
+	var fields []reflect.StructField
+	title := cases.Title(language.English)
+
+	// If introspection data is provided, parse it and generate the struct
+	if introspectionData != "" {
+		var introspection Introspection
+		if err := json.Unmarshal([]byte(introspectionData), &introspection); err != nil {
+			return nil, fmt.Errorf("failed to parse introspection data: %v", err)
+		}
+
+		// Add fields from introspection data
+		for _, info := range introspection {
+			fields = append(fields, reflect.StructField{
+				Name: title.String(info.Name),
+				Type: MapTypeToGoType(info.Encoding),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, info.Name)),
+			})
+		}
+	}
+
+	// Add fields for arguments from metadata
+	for _, info := range metadata.Arguments {
+		name := NormalizeArgumentName(info.Name)
+		fields = append(fields, reflect.StructField{
+			Name: title.String(name),
+			Type: MapTypeToGoType(info.Type),
+			Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+		})
+	}
+
+	// Add fields for options from metadata
+	for _, opt := range metadata.Options {
+		name := GetFlagName(opt.Name)
+		if opt.File && !opt.RawData {
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: MapTypeToGoType(opt.Type),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s" jsonschema_extras:"format=binary"`, name)),
+			})
+		} else {
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: MapTypeToGoType(opt.Type),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		}
+	}
+
+	// Create a new struct type
+	dynamicType := reflect.StructOf(fields)
+
+	// Create an instance of the struct
+	return reflect.New(dynamicType).Interface(), nil
 }
 
 // a functionfor defer error handling

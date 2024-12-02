@@ -54,7 +54,7 @@ var listCmd = &cobra.Command{
 
 			// If the daemon flag is set, start the HTTP server
 			if daemon {
-				if err := httpserver.StartHTTPServer("contracts", "", nil); err != nil {
+				if err := httpserver.StartHTTPServer("contracts", "", nil, &contracts, "contracts"); err != nil {
 					log.Printf("Failed to start HTTP server: %v\n", err)
 					os.Exit(1)
 				}
@@ -72,7 +72,7 @@ var listCmd = &cobra.Command{
 			fmt.Printf("Listing contracts in folder: %s\n", folder)
 
 			if daemon {
-				if err := httpserver.StartHTTPServer(folder, "", nil); err != nil {
+				if err := httpserver.StartHTTPServer(folder, "", nil, &contracts, "contracts"); err != nil {
 					log.Printf("Failed to start HTTP server: %v\n", err)
 					os.Exit(1)
 				}
@@ -190,7 +190,7 @@ var runCmd = &cobra.Command{
 
 				// Start HTTP server if daemon flag is set
 				if daemon {
-					if err := httpserver.StartHTTPServer(folder, filePath, nil); err != nil {
+					if err := httpserver.StartHTTPServer(folder, filePath, nil, &contracts, "contracts"); err != nil {
 						log.Printf("Failed to start HTTP server: %v\n", err)
 						os.Exit(1)
 					}
@@ -249,7 +249,7 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 	}
 	// Start HTTP server if daemon flag is set
 	if daemon {
-		if err := httpserver.StartHTTPServer("contracts", relativePath, input); err != nil {
+		if err := httpserver.StartHTTPServer("contracts", relativePath, input, &contracts, "contracts"); err != nil {
 			log.Printf("Failed to start HTTP server: %v\n", err)
 			os.Exit(1)
 		}
