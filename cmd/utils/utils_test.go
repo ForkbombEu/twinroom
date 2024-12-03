@@ -475,5 +475,4 @@ func TestValidateFlags(t *testing.T) {
 	if input.Data != expected {
 		t.Errorf("Expected %s for jsonFlag, got: %v", expected, input.Data)
 	}
-
 }
