@@ -327,8 +327,18 @@ func TestValidateFlags(t *testing.T) {
 
 	argContents := make(map[string]interface{})
 
+	// Test for invalid choice
+	err := cmd.Flags().Set("flag2", "invalid_choice")
+	if err != nil {
+		t.Errorf("Unexpected error setting test flag: %v", err)
+	}
+	err = ValidateFlags(cmd, flagContents, argContents, nil)
+	if err == nil {
+		t.Errorf("Expected error for invalid flag choice, got: nil")
+	}
+
 	// Test for valid choice and check environment variable setting
-	err := cmd.Flags().Set("flag1", "opt1")
+	err = cmd.Flags().Set("flag1", "opt1")
 	if err != nil {
 		t.Errorf("Unexpected error setting test flag: %v", err)
 	}
@@ -466,13 +476,4 @@ func TestValidateFlags(t *testing.T) {
 		t.Errorf("Expected %s for jsonFlag, got: %v", expected, input.Data)
 	}
 
-	// Test for invalid choice
-	err = cmd.Flags().Set("flag2", "invalid_choice")
-	if err != nil {
-		t.Errorf("Unexpected error setting test flag: %v", err)
-	}
-	err = ValidateFlags(cmd, flagContents, argContents, nil)
-	if err == nil {
-		t.Errorf("Expected error for invalid flag choice, got: nil")
-	}
 }
