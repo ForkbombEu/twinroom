@@ -51,15 +51,6 @@ var listCmd = &cobra.Command{
 		if len(args) == 0 {
 			// If no folder argument is provided, list embedded files
 			fmt.Println("Listing embedded slangroom files:")
-
-			// If the daemon flag is set, start the HTTP server
-			if daemon {
-				if err := httpserver.StartHTTPServer("contracts", "", nil, &contracts, "contracts"); err != nil {
-					log.Printf("Failed to start HTTP server: %v\n", err)
-					os.Exit(1)
-				}
-				return
-			}
 			err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
 				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
 			})
@@ -70,16 +61,6 @@ var listCmd = &cobra.Command{
 			// If a folder argument is provided, list files in that folder
 			folder := args[0]
 			fmt.Printf("Listing contracts in folder: %s\n", folder)
-
-			if daemon {
-				if err := httpserver.StartHTTPServer(folder, "", nil, &contracts, "contracts"); err != nil {
-					log.Printf("Failed to start HTTP server: %v\n", err)
-					os.Exit(1)
-				}
-				return
-			}
-
-			// List slangroom files in the specified folder
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
 				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
 			})
@@ -148,7 +129,7 @@ func addEmbeddedFileCommands() {
 
 		// Set the command's run function
 		fileCmd.Run = func(_ *cobra.Command, args []string) {
-			runFileCommand(file, args, metadata, argContents, isMetadata, relativePath, &input)
+			runFileCommand(file, args, metadata, argContents, isMetadata, &input)
 		}
 
 		// Add the file command to its directory's command
@@ -165,8 +146,36 @@ func addEmbeddedFileCommands() {
 var runCmd = &cobra.Command{
 	Use:   filepath.Base(os.Args[0]) + " [folder]",
 	Short: "Execute a specific slangroom file in a dynamically specified folder",
-	Args:  cobra.MinimumNArgs(1),
+	Args:  cobra.ArbitraryArgs,
 	Run: func(_ *cobra.Command, args []string) {
+		if daemon {
+			if len(args) == 0 {
+				httpInput := httpserver.HTTPInput{
+					BinaryName:     filepath.Base(os.Args[0]),
+					EmbeddedFolder: &contracts,
+					EmbeddedPath:   "contracts",
+				}
+				if err := httpserver.StartHTTPServer(httpInput); err != nil {
+					log.Printf("Failed to start HTTP server: %v\n", err)
+					os.Exit(1)
+				}
+				return
+			}
+			folder := args[0]
+			filePath := filepath.Join(args[1:]...)
+			isDir, err := utils.IsDir(filepath.Join(folder, filePath))
+			if isDir && err == nil {
+				httpInput := httpserver.HTTPInput{
+					BinaryName: filepath.Base(os.Args[0]),
+					Path:       filepath.Join(folder, filePath),
+				}
+				if err := httpserver.StartHTTPServer(httpInput); err != nil {
+					log.Printf("Failed to start HTTP server: %v\n", err)
+					os.Exit(1)
+				}
+				return
+			}
+		}
 		folder := args[0]
 		filePath := filepath.Join(args[1:]...)
 		input := slangroom.SlangroomInput{}
@@ -190,7 +199,11 @@ var runCmd = &cobra.Command{
 
 				// Start HTTP server if daemon flag is set
 				if daemon {
-					if err := httpserver.StartHTTPServer(folder, filePath, nil, &contracts, "contracts"); err != nil {
+					httpInput := httpserver.HTTPInput{
+						BinaryName: filepath.Base(os.Args[0]),
+						Path:       file.Path,
+					}
+					if err := httpserver.StartHTTPServer(httpInput); err != nil {
 						log.Printf("Failed to start HTTP server: %v\n", err)
 						os.Exit(1)
 					}
@@ -219,7 +232,7 @@ var runCmd = &cobra.Command{
 	},
 }
 
-func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]interface{}, isMetadata bool, relativePath string, input *slangroom.SlangroomInput) {
+func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]interface{}, isMetadata bool, input *slangroom.SlangroomInput) {
 	filename := strings.TrimSuffix(file.FileName, extension)
 	err := utils.LoadAdditionalData(file.Dir, filename, input)
 	if err != nil {
@@ -249,7 +262,13 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 	}
 	// Start HTTP server if daemon flag is set
 	if daemon {
-		if err := httpserver.StartHTTPServer("contracts", relativePath, input, &contracts, "contracts"); err != nil {
+		httpInput := httpserver.HTTPInput{
+			BinaryName:     filepath.Base(os.Args[0]),
+			EmbeddedFolder: &contracts,
+			EmbeddedPath:   "contracts",
+			FileName:       filename,
+		}
+		if err := httpserver.StartHTTPServer(httpInput); err != nil {
 			log.Printf("Failed to start HTTP server: %v\n", err)
 			os.Exit(1)
 		}

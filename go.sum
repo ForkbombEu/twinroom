@@ -9,10 +9,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davidebianchi/gswagger v0.10.0 h1:RrFeWwjAAewWNm3x4kqFzbg+KGZ5Ak2FRdOdY72ZJe8=
 github.com/davidebianchi/gswagger v0.10.0/go.mod h1:2Lra+xPka3Vu/FFvh24LgqfRPpbay5uFSffVKET5D5A=
-github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241017085658-fb538b02efa3 h1:NpCugAf9qm8A8X1qle9+jYlamF6ATGDrsMzWfDOuGW0=
-github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241017085658-fb538b02efa3/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
-github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241126094659-9d1480dec745 h1:iVcQZ+T1BORRlxE0K7QLLSHbZ/LeNVP9yX0/4DJyQVU=
-github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241126094659-9d1480dec745/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
 github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241129112151-e8864edd2fb4 h1:uI3pec0COHw+TmneeDCg3qEFjdg5FpEAwrn+eTasktY=
 github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241129112151-e8864edd2fb4/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
 github.com/getkin/kin-openapi v0.128.0 h1:jqq3D9vC9pPq1dGcOCv7yOp1DaEe7c/T1vzcLbITSp4=
@@ -60,8 +56,6 @@ github.com/ugorji/go/codec v1.2.7 h1:YPXUKf7fYbp/y8xloBqZOw2qaVggbfwMlI8WM3wZUJ0
 github.com/ugorji/go/codec v1.2.7/go.mod h1:WGN1fab3R1fzQlVQTkfxVtIBhWDRqOviHU95kRgeqEY=
 github.com/wk8/go-ordered-map/v2 v2.1.8 h1:5h/BUHu93oj4gIdvHHHGsScSTMijfx5PeYkE/fJgbpc=
 github.com/wk8/go-ordered-map/v2 v2.1.8/go.mod h1:5nJHM5DyteebpVlHnWMV0rPz6Zp7+xBAnxjb1X5vnTw=
-golang.org/x/text v0.14.0 h1:ScX5w1eTa3QqT8oi6+ziP7dTV1S2+ALU0bI+0zXKWiQ=
-golang.org/x/text v0.14.0/go.mod h1:18ZOQIKpY8NJVqYksKHtTdi31H5itFRjB5/qKTNYzSU=
 golang.org/x/text v0.20.0 h1:gK/Kv2otX8gz+wn7Rmb3vT96ZwuoxnQlY+HlJVj7Qug=
 golang.org/x/text v0.20.0/go.mod h1:D4IsuqiFMhST5bX19pQ9ikHC2GsaKyk/oF+pn3ducp4=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=

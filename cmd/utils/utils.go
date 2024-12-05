@@ -440,3 +440,12 @@ func checks(fs ...func() error) {
 		}
 	}
 }
+
+// isDir checks if a given path is a directory
+func IsDir(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err // Error, e.g., the path doesn't exist.
+	}
+	return info.IsDir(), nil
+}
