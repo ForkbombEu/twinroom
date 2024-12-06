@@ -145,9 +145,9 @@ func addEmbeddedFileCommands() {
 // It accepts a folder and file path and can optionally start an HTTP server if the daemon flag is set.
 var runCmd = &cobra.Command{
 	Use:   filepath.Base(os.Args[0]) + " [folder]",
-	Short: "Execute a specific slangroom file in a dynamically specified folder",
+	Short: "Execute a specific slangroom file in a dynamically specified folder or in the embedded folder contracts",
 	Args:  cobra.ArbitraryArgs,
-	Run: func(_ *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) {
 		if daemon {
 			if len(args) == 0 {
 				httpInput := httpserver.HTTPInput{
@@ -175,6 +175,16 @@ var runCmd = &cobra.Command{
 				}
 				return
 			}
+		}
+
+		if len(args) < 1 {
+			log.Println("Error: folder or  argument is required")
+			if err := cmd.Help(); err != nil {
+				log.Printf("Failed to start the program: %v\n", err)
+				os.Exit(1)
+			}
+
+			return
 		}
 		folder := args[0]
 		filePath := filepath.Join(args[1:]...)
