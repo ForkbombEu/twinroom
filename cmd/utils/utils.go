@@ -45,14 +45,15 @@ type FlagData struct {
 	Env     []string
 	File    [2]bool
 }
-
-// Introspection contains the data coming from zenroom introspection
-type Introspection map[string]struct {
+type codec struct {
 	Encoding string `json:"encoding"`
 	Missing  bool   `json:"missing"`
 	Name     string `json:"name"`
 	Zentype  string `json:"zentype"`
 }
+
+// Introspection contains the data coming from zenroom introspection
+type Introspection map[string]codec
 
 // LoadAdditionalData loads and validates JSON data for additional fields in SlangroomInput.
 func LoadAdditionalData(path string, filename string, input *slangroom.SlangroomInput) error {
@@ -344,7 +345,7 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 }
 
 // map a string representing a type to the type itself
-func MapTypeToGoType(typeStr string) reflect.Type {
+func MapTypeToGoType(typeStr string, elemTypeStr string) reflect.Type {
 	switch strings.ToLower(typeStr) {
 	case "string":
 		return reflect.TypeOf("")
@@ -354,13 +355,20 @@ func MapTypeToGoType(typeStr string) reflect.Type {
 		return reflect.TypeOf(0.0)
 	case "boolean", "bool":
 		return reflect.TypeOf(false)
+	case "array", "[]":
+		elemType := MapTypeToGoType(elemTypeStr, "") // Recursively map element type
+		return reflect.SliceOf(elemType)
+	case "dictionary", "map", "object":
+		elemType := MapTypeToGoType(elemTypeStr, "")
+		return reflect.MapOf(reflect.TypeOf(""), elemType)
 	default:
 		return reflect.TypeOf("") // Default to string if type is unknown
 	}
 }
 
 // returns the default value from a given type
-func CreateDefaultValue(typeStr string) interface{} {
+// returns the default value from a given type
+func CreateDefaultValue(typeStr string, elemTypeStr string) interface{} {
 	switch strings.ToLower(typeStr) {
 	case "string":
 		return ""
@@ -370,8 +378,26 @@ func CreateDefaultValue(typeStr string) interface{} {
 		return 0.0
 	case "boolean", "bool":
 		return false
+	case "array", "[]":
+		elemType := CreateDefaultValue(elemTypeStr, "") // Recursively get default value for array element type
+		return reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(elemType)), 0, 0).Interface()
+	case "dictionary", "map", "object":
+		elemType := CreateDefaultValue(elemTypeStr, "") // Recursively get default value for map element type
+		return reflect.MakeMap(reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf(elemType))).Interface()
 	default:
 		return "" // Default to string if type is unknown
+	}
+}
+
+// Coverts zentype to type
+func ZentypeToType(codec codec) string {
+	switch codec.Zentype {
+	case "a":
+		return "array"
+	case "d":
+		return "object"
+	default:
+		return codec.Encoding
 	}
 }
 
@@ -389,9 +415,10 @@ func GenerateStruct(metadata CommandMetadata, introspectionData string) (interfa
 
 		// Add fields from introspection data
 		for _, info := range introspection {
+			typeStr := ZentypeToType(info)
 			fields = append(fields, reflect.StructField{
 				Name: title.String(info.Name),
-				Type: MapTypeToGoType(info.Encoding),
+				Type: MapTypeToGoType(typeStr, info.Encoding),
 				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, info.Name)),
 			})
 		}
@@ -402,7 +429,7 @@ func GenerateStruct(metadata CommandMetadata, introspectionData string) (interfa
 		name := NormalizeArgumentName(info.Name)
 		fields = append(fields, reflect.StructField{
 			Name: title.String(name),
-			Type: MapTypeToGoType(info.Type),
+			Type: MapTypeToGoType(info.Type, "string"),
 			Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
 		})
 	}
@@ -413,13 +440,13 @@ func GenerateStruct(metadata CommandMetadata, introspectionData string) (interfa
 		if opt.File && !opt.RawData {
 			fields = append(fields, reflect.StructField{
 				Name: title.String(name),
-				Type: MapTypeToGoType(opt.Type),
+				Type: MapTypeToGoType(opt.Type, ""),
 				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s" jsonschema_extras:"format=binary"`, name)),
 			})
 		} else {
 			fields = append(fields, reflect.StructField{
 				Name: title.String(name),
-				Type: MapTypeToGoType(opt.Type),
+				Type: MapTypeToGoType(opt.Type, ""),
 				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
 			})
 		}

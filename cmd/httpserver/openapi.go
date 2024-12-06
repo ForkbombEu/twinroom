@@ -120,7 +120,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 							name := utils.NormalizeArgumentName(arg.Name)
 							queryParameters[name] = swagger.Parameter{
 								Schema: &swagger.Schema{
-									Value:                     utils.CreateDefaultValue(arg.Type),
+									Value:                     utils.CreateDefaultValue(arg.Type, ""),
 									AllowAdditionalProperties: true,
 								},
 								Description: arg.Description,
@@ -132,7 +132,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 							name := utils.GetFlagName(opt.Name)
 							queryParameters[name] = swagger.Parameter{
 								Schema: &swagger.Schema{
-									Value:                     utils.CreateDefaultValue(opt.Type),
+									Value:                     utils.CreateDefaultValue(opt.Type, ""),
 									AllowAdditionalProperties: true,
 								},
 								Description: opt.Description,
@@ -143,9 +143,10 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 						var introspection utils.Introspection
 						if err := json.Unmarshal([]byte(introspectionData), &introspection); err == nil {
 							for _, info := range introspection {
+								typeStr := utils.ZentypeToType(info)
 								queryParameters[info.Name] = swagger.Parameter{
 									Schema: &swagger.Schema{
-										Value:                     utils.CreateDefaultValue(info.Encoding),
+										Value:                     utils.CreateDefaultValue(typeStr, info.Encoding),
 										AllowAdditionalProperties: true,
 									},
 									Description: fmt.Sprintf("The %s", info.Name),
