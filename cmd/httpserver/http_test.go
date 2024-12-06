@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -63,8 +64,8 @@ Then print the data
 
 		bodycontent, err := io.ReadAll(body)
 		require.NoError(t, err)
-
-		expected := `{"info":{"title":"TestBinary","version":"1.0.0"},"openapi":"3.0.0","paths":{"/example":{"get":{"description":"\u003cpre\u003eRule unknown ignore\nGiven I have a 'string' named 'test'\nThen print the data\n\u003c/pre\u003e","parameters":[{"description":"The test","in":"query","name":"test","schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"output":{"items":{"type":"string"},"type":"array"}},"required":["output"],"type":"object"}}},"description":"The slangroom execution output, splitted by newline"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"items":{"type":"string"},"type":"array"}},"required":["message"],"type":"object"}}},"description":"Slangroom execution error"}},"tags":["📑 Zencodes"]},"post":{"description":"\u003cpre\u003eRule unknown ignore\nGiven I have a 'string' named 'test'\nThen print the data\n\u003c/pre\u003e","requestBody":{"content":{"application/json":{"schema":{"properties":{"test":{"type":"string"}},"required":["test"],"type":"object"}}}},"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"output":{"items":{"type":"string"},"type":"array"}},"required":["output"],"type":"object"}}},"description":"The slangroom execution output, split by newline"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"items":{"type":"string"},"type":"array"}},"required":["message"],"type":"object"}}},"description":"Slangroom execution error"}},"tags":["📑 Zencodes"]}}},"tags":[{"description":"Endpoints generated over the Zencode smart contracts","name":"📑 Zencodes"}]}`
+		fmt.Println(string(bodycontent))
+		expected := `{"info":{"title":"TestBinary","version":"1.0.0"},"openapi":"3.0.0","paths":{"/example":{"get":{"description":"Rule unknown ignore\n\nGiven I have a 'string' named 'test'\n\nThen print the data\n\n","parameters":[{"description":"The test","in":"query","name":"test","schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"output":{"items":{"type":"string"},"type":"array"}},"required":["output"],"type":"object"}}},"description":"The slangroom execution output, splitted by newline"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"items":{"type":"string"},"type":"array"}},"required":["message"],"type":"object"}}},"description":"Slangroom execution error"}},"tags":["📑 Zencodes"]},"post":{"description":"Rule unknown ignore\n\nGiven I have a 'string' named 'test'\n\nThen print the data\n\n","requestBody":{"content":{"application/json":{"schema":{"properties":{"test":{"type":"string"}},"required":["test"],"type":"object"}}}},"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"output":{"items":{"type":"string"},"type":"array"}},"required":["output"],"type":"object"}}},"description":"The slangroom execution output, split by newline"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"items":{"type":"string"},"type":"array"}},"required":["message"],"type":"object"}}},"description":"Slangroom execution error"}},"tags":["📑 Zencodes"]}}},"tags":[{"description":"Endpoints generated over the Zencode smart contracts","name":"📑 Zencodes"}]}`
 		require.JSONEq(t, expected, string(bodycontent), "actual json data: %s", body)
 	})
 
