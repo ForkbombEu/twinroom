@@ -44,14 +44,6 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 			},
 		},
 	})
-	okHandler := func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte("OK"))
-		if err != nil {
-			log.Fatal("unexpected error:", err)
-		}
-	}
-
 	err := fouter.CreateFileRouter(input.Path, input.EmbeddedFolder, input.EmbeddedPath, func(file fouter.SlangFile) {
 		var filename string
 		if input.FileName == "" {
@@ -80,11 +72,11 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 			} else {
 				introspectionData, err = slangroom.Introspect(file.Content)
 				if err != nil {
-					return
+					introspectionData = ""
 				}
 				dynamicStruct, _ = utils.GenerateStruct(utils.CommandMetadata{}, introspectionData)
 			}
-			_, err = router.AddRoute(http.MethodPost, "/"+relativePath, okHandler, swagger.Definitions{
+			_, err = router.AddRoute(http.MethodPost, "/"+relativePath, gorilla.HandlerFunc(createSlangroomHandler(file)), swagger.Definitions{
 				Tags: []string{"📑 Zencodes"},
 				RequestBody: &swagger.ContentValue{
 					Content: swagger.Content{
@@ -110,7 +102,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 			if err != nil {
 				return
 			}
-			_, err = router.AddRoute(http.MethodGet, "/"+relativePath, okHandler, swagger.Definitions{
+			_, err = router.AddRoute(http.MethodGet, "/"+relativePath, gorilla.HandlerFunc(createSlangroomHandler(file)), swagger.Definitions{
 				Tags: []string{"📑 Zencodes"},
 				Querystring: func() swagger.ParameterValue {
 					queryParameters := swagger.ParameterValue{}
@@ -188,4 +180,88 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 		return nil, fmt.Errorf("error creating opeanpapi spec: %v", err)
 	}
 	return muxRouter, nil
+}
+func getQueryParams(r *http.Request) map[string]interface{} {
+	data := make(map[string]interface{})
+
+	// Get the query string from the URL
+	q := r.URL.Query()
+
+	// Iterate over the query parameters
+	for key, values := range q {
+		// Use the first value if there are multiple values for the same key
+		if len(values) > 0 {
+			data[key] = values[0]
+		}
+	}
+
+	return data
+}
+
+func createSlangroomHandler(file fouter.SlangFile) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handleSlangroomRequest(file, w, r)
+	}
+}
+
+func handleSlangroomRequest(file fouter.SlangFile, w http.ResponseWriter, r *http.Request) {
+	var input map[string]interface{}
+
+	// Handle POST request with JSON body
+	if r.Method == http.MethodPost {
+		if r.Body == nil || r.ContentLength == 0 {
+			// If body is empty, initialize input with default or empty values
+			input = make(map[string]interface{})
+		} else {
+			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+				http.Error(w, fmt.Sprintf("Invalid JSON payload: %v", err), http.StatusBadRequest)
+				return
+			}
+		}
+	}
+
+	// Handle GET request with query parameters
+	if r.Method == http.MethodGet {
+		input = getQueryParams(r)
+	}
+
+	data, err := json.Marshal(input)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal input: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	slangroomInput := slangroom.SlangroomInput{
+		Contract: file.Content,
+		Data:     string(data),
+	}
+
+	// Execute the slangroom contract
+	output, err := slangroom.Exec(slangroomInput)
+	if err != nil {
+		log.Printf("Execution error for file %s: %v", file.FileName, output.Logs)
+		http.Error(w, fmt.Sprintf("Execution error: %v", output.Logs), http.StatusInternalServerError)
+		return
+	}
+
+	var jsonData interface{}
+	if err := json.Unmarshal([]byte(output.Output), &jsonData); err != nil {
+		log.Printf("Error parsing output as JSON: %v", err)
+		http.Error(w, "Invalid JSON in output", http.StatusInternalServerError)
+		return
+	}
+
+	// Format the JSON with indentation
+	w.Header().Set("Content-Type", "application/json")
+	formattedOutput, err := json.MarshalIndent(jsonData, "", "  ")
+	if err != nil {
+		log.Printf("Error formatting response: %v", err)
+		http.Error(w, "Failed to format response", http.StatusInternalServerError)
+		return
+	}
+
+	// Write the formatted JSON to the response writer
+	if _, err := w.Write(formattedOutput); err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
 }
