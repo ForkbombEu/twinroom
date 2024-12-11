@@ -22,20 +22,22 @@ import (
 type CommandMetadata struct {
 	Description string `json:"description"`
 	Arguments   []struct {
-		Name        string `json:"name"`
-		Description string `json:"description,omitempty"`
-		Type        string `json:"type,omitempty"`
+		Name        string                 `json:"name"`
+		Description string                 `json:"description,omitempty"`
+		Type        string                 `json:"type,omitempty"`
+		Properties  map[string]interface{} `json:"properties,omitempty"` // For complex object types
 	} `json:"arguments"`
 	Options []struct {
-		Name        string   `json:"name"`
-		Description string   `json:"description,omitempty"`
-		Default     string   `json:"default,omitempty"`
-		Choices     []string `json:"choices,omitempty"`
-		Env         []string `json:"env,omitempty"`
-		Hidden      bool     `json:"hidden,omitempty"`
-		File        bool     `json:"file,omitempty"`
-		RawData     bool     `json:"rawdata,omitempty"`
-		Type        string   `json:"type,omitempty"`
+		Name        string                 `json:"name"`
+		Description string                 `json:"description,omitempty"`
+		Default     string                 `json:"default,omitempty"`
+		Choices     []string               `json:"choices,omitempty"`
+		Env         []string               `json:"env,omitempty"`
+		Hidden      bool                   `json:"hidden,omitempty"`
+		File        bool                   `json:"file,omitempty"`
+		RawData     bool                   `json:"rawdata,omitempty"`
+		Type        string                 `json:"type,omitempty"`
+		Properties  map[string]interface{} `json:"properties,omitempty"` // For complex object types
 	} `json:"options"`
 }
 
@@ -141,9 +143,10 @@ func NormalizeArgumentName(name string) string {
 
 // Helper function to get argument names in order from metadata
 func GetArgumentNames(arguments []struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Type        string `json:"type,omitempty"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Type        string                 `json:"type,omitempty"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
 }) []string {
 	names := make([]string, len(arguments))
 	for i, arg := range arguments {
@@ -367,8 +370,7 @@ func MapTypeToGoType(typeStr string, elemTypeStr string) reflect.Type {
 }
 
 // returns the default value from a given type
-// returns the default value from a given type
-func CreateDefaultValue(typeStr string, elemTypeStr string) interface{} {
+func CreateDefaultValue(typeStr string, elemTypeStr string, nestedFields ...reflect.StructField) interface{} {
 	switch strings.ToLower(typeStr) {
 	case "string":
 		return ""
@@ -382,8 +384,31 @@ func CreateDefaultValue(typeStr string, elemTypeStr string) interface{} {
 		elemType := CreateDefaultValue(elemTypeStr, "") // Recursively get default value for array element type
 		return reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(elemType)), 0, 0).Interface()
 	case "dictionary", "map", "object":
-		elemType := CreateDefaultValue(elemTypeStr, "") // Recursively get default value for map element type
-		return reflect.MakeMap(reflect.MapOf(reflect.TypeOf(""), reflect.TypeOf(elemType))).Interface()
+		if len(nestedFields) > 0 {
+			// Handle nested object fields by creating a struct
+			structFields := []reflect.StructField{}
+			for _, field := range nestedFields {
+				structFields = append(structFields, reflect.StructField{
+					Name: field.Name,
+					Type: field.Type,
+					Tag:  field.Tag,
+				})
+			}
+			// Create a struct and populate it with default values for each field
+			structType := reflect.StructOf(structFields)
+			structValue := reflect.New(structType).Elem()
+
+			// Set default values for the struct fields
+			for i := 0; i < structType.NumField(); i++ {
+				field := structType.Field(i)
+				defaultValue := CreateDefaultValue(field.Type.String(), "", nestedFields...)
+				structValue.Field(i).Set(reflect.ValueOf(defaultValue))
+			}
+
+			return structValue.Interface()
+		}
+		// If no nested fields, return a default empty struct
+		return reflect.New(reflect.StructOf([]reflect.StructField{})).Elem().Interface()
 	default:
 		return "" // Default to string if type is unknown
 	}
@@ -399,6 +424,40 @@ func ZentypeToType(codec codec) string {
 	default:
 		return codec.Encoding
 	}
+}
+
+// Helper function to handle nested objects from metadata.
+func ParseObjectProperties(properties map[string]interface{}) []reflect.StructField {
+	var nestedFields []reflect.StructField
+	title := cases.Title(language.English)
+
+	for name, value := range properties {
+		fieldName := title.String(name)
+		switch v := value.(type) {
+		case map[string]interface{}:
+			if v["type"] == "object" {
+				// Recursively parse nested objects
+				if subProperties, ok := v["properties"].(map[string]interface{}); ok {
+					nestedFields = append(nestedFields, reflect.StructField{
+						Name: fieldName,
+						Type: reflect.StructOf(ParseObjectProperties(subProperties)),
+						Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+					})
+				}
+			} else {
+				// Handle primitive types
+				nestedFields = append(nestedFields, reflect.StructField{
+					Name: fieldName,
+					Type: MapTypeToGoType(v["type"].(string), ""),
+					Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+				})
+			}
+		default:
+			// Invalid structure
+			fmt.Printf("Warning: invalid property structure for %s\n", name)
+		}
+	}
+	return nestedFields
 }
 
 // Function that dynamically generates a go structure from introspection or metadata
@@ -425,38 +484,67 @@ func GenerateStruct(metadata CommandMetadata, introspectionData string) (interfa
 	}
 
 	// Add fields for arguments from metadata
-	for _, info := range metadata.Arguments {
-		name := NormalizeArgumentName(info.Name)
-		fields = append(fields, reflect.StructField{
-			Name: title.String(name),
-			Type: MapTypeToGoType(info.Type, "string"),
-			Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
-		})
+	for _, arg := range metadata.Arguments {
+		name := NormalizeArgumentName(arg.Name)
+		if arg.Type == "object" && arg.Properties != nil {
+			// Nested object handling
+			nestedFields := ParseObjectProperties(arg.Properties)
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: reflect.StructOf(nestedFields),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		} else {
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: MapTypeToGoType(arg.Type, "string"),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		}
 	}
 
 	// Add fields for options from metadata
 	for _, opt := range metadata.Options {
 		name := GetFlagName(opt.Name)
-		if opt.File && !opt.RawData {
+		if opt.Type == "object" && opt.Properties != nil {
+			// Nested object handling
+			nestedFields := ParseObjectProperties(opt.Properties)
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: reflect.StructOf(nestedFields),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		} else if opt.File && !opt.RawData {
 			fields = append(fields, reflect.StructField{
 				Name: title.String(name),
 				Type: MapTypeToGoType(opt.Type, ""),
 				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s" jsonschema_extras:"format=binary"`, name)),
 			})
 		} else {
+			var choices string
+			for i, choice := range opt.Choices {
+				if i > 0 {
+					choices += ","
+				}
+				choices += "enum=" + choice
+			}
+			if opt.Default != "" {
+				if choices != "" {
+					choices += ","
+				}
+				choices += "default=" + opt.Default
+			}
 			fields = append(fields, reflect.StructField{
 				Name: title.String(name),
 				Type: MapTypeToGoType(opt.Type, ""),
-				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s" jsonschema:"%s"`, name, choices)),
 			})
 		}
 	}
 
-	// Create a new struct type
-	dynamicType := reflect.StructOf(fields)
-
-	// Create an instance of the struct
-	return reflect.New(dynamicType).Interface(), nil
+	// Create the final struct
+	structType := reflect.StructOf(fields)
+	return reflect.New(structType).Interface(), nil
 }
 
 // a functionfor defer error handling

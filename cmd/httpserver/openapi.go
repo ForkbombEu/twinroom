@@ -112,7 +112,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 							name := utils.NormalizeArgumentName(arg.Name)
 							queryParameters[name] = swagger.Parameter{
 								Schema: &swagger.Schema{
-									Value:                     utils.CreateDefaultValue(arg.Type, ""),
+									Value:                     utils.CreateDefaultValue(arg.Type, "", utils.ParseObjectProperties(arg.Properties)...),
 									AllowAdditionalProperties: true,
 								},
 								Description: arg.Description,
@@ -124,7 +124,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 							name := utils.GetFlagName(opt.Name)
 							queryParameters[name] = swagger.Parameter{
 								Schema: &swagger.Schema{
-									Value:                     utils.CreateDefaultValue(opt.Type, ""),
+									Value:                     utils.CreateDefaultValue(opt.Type, "", utils.ParseObjectProperties(opt.Properties)...),
 									AllowAdditionalProperties: true,
 								},
 								Description: opt.Description,
