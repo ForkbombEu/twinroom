@@ -37,7 +37,8 @@ jobs:
       - name: start server
         run: |
          make  build
-         out/bin/gemini -d 
+         nohup out/bin/gemini -d > server.log 2>&1 &
+         sleep 5  # Wait for the server to initialize
       - name: Step CI Action
         uses: stepci/stepci@main
         with:
