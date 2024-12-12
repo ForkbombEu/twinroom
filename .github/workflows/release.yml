@@ -29,6 +29,15 @@ jobs:
         run: make build
       - name: Run test
         run: go test -v ./...
+  api_test:
+    runs-on: ubuntu-latest
+    name: API Tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Step CI Action
+        uses: stepci/stepci@main
+        with:
+          workflow: "workflow.stepci.yml"
   release:
     runs-on: ubuntu-latest
     needs: test

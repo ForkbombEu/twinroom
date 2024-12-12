@@ -226,12 +226,12 @@ func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w 
 
 			// Decode into dynamicStruct for validation
 			if err := ValidateJSONAgainstStruct(bodyBytes, dynamicStruct); err != nil {
-				http.Error(w, fmt.Sprintf("Invalid JSON payload for validation: %v", err), http.StatusBadRequest)
+				http.Error(w, fmt.Sprintf("Invalid JSON payload for validation: %v", err), http.StatusInternalServerError)
 				return
 			}
 			// Decode into a generic map for further processing
 			if err := json.Unmarshal(bodyBytes, &input); err != nil {
-				http.Error(w, fmt.Sprintf("Invalid JSON payload: %v", err), http.StatusBadRequest)
+				http.Error(w, fmt.Sprintf("Invalid JSON payload: %v", err), http.StatusInternalServerError)
 				return
 			}
 		}
@@ -282,6 +282,8 @@ func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w 
 		log.Printf("Error writing response: %v", err)
 	}
 }
+
+// Validate the request body against the json schema
 func ValidateJSONAgainstStruct(data []byte, schemaStruct interface{}) error {
 	// Generate JSON schema from the struct
 	schema := jsonschema.Reflect(schemaStruct)
