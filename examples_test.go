@@ -30,12 +30,15 @@ func Example_listCmd() {
 
 	// Output:
 	// Listing contracts in folder: contracts
+	// Found file: broken (Path: contracts/test/broken.slang)
 	// Found file: env (Path: contracts/test/env.slang)
 	// Found file: execute_zencode (Path: contracts/test/execute_zencode.slang)
 	// Found file: hello (Path: contracts/test/hello.slang)
+	// Found file: introspection (Path: contracts/test/introspection.slang)
 	// Found file: param (Path: contracts/test/param.slang)
 	// Found file: stdin (Path: contracts/test/stdin.slang)
 	// Found file: test (Path: contracts/test/test.slang)
+	// Found file: withschema (Path: contracts/test/withschema.slang)
 }
 
 // Example of using the run command to execute a specific slangroom file.
