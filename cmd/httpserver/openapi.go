@@ -1,9 +1,11 @@
 package httpserver
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -16,6 +18,8 @@ import (
 	"github.com/forkbombeu/gemini/cmd/utils"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
+	"github.com/invopop/jsonschema"
+	jsschema "github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 type errorResponse struct {
@@ -76,7 +80,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 				}
 				dynamicStruct, _ = utils.GenerateStruct(utils.CommandMetadata{}, introspectionData)
 			}
-			_, err = router.AddRoute(http.MethodPost, "/"+relativePath, gorilla.HandlerFunc(createSlangroomHandler(file)), swagger.Definitions{
+			_, err = router.AddRoute(http.MethodPost, "/"+relativePath, gorilla.HandlerFunc(createSlangroomHandler(file, dynamicStruct)), swagger.Definitions{
 				Tags: []string{"📑 Zencodes"},
 				RequestBody: &swagger.ContentValue{
 					Content: swagger.Content{
@@ -102,7 +106,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 			if err != nil {
 				return
 			}
-			_, err = router.AddRoute(http.MethodGet, "/"+relativePath, gorilla.HandlerFunc(createSlangroomHandler(file)), swagger.Definitions{
+			_, err = router.AddRoute(http.MethodGet, "/"+relativePath, gorilla.HandlerFunc(createSlangroomHandler(file, nil)), swagger.Definitions{
 				Tags: []string{"📑 Zencodes"},
 				Querystring: func() swagger.ParameterValue {
 					queryParameters := swagger.ParameterValue{}
@@ -198,13 +202,13 @@ func getQueryParams(r *http.Request) map[string]interface{} {
 	return data
 }
 
-func createSlangroomHandler(file fouter.SlangFile) http.HandlerFunc {
+func createSlangroomHandler(file fouter.SlangFile, dynamicStruct interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handleSlangroomRequest(file, w, r)
+		handleSlangroomRequest(file, dynamicStruct, w, r)
 	}
 }
 
-func handleSlangroomRequest(file fouter.SlangFile, w http.ResponseWriter, r *http.Request) {
+func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w http.ResponseWriter, r *http.Request) {
 	var input map[string]interface{}
 
 	// Handle POST request with JSON body
@@ -213,7 +217,20 @@ func handleSlangroomRequest(file fouter.SlangFile, w http.ResponseWriter, r *htt
 			// If body is empty, initialize input with default or empty values
 			input = make(map[string]interface{})
 		} else {
-			if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			// Read and buffer the request body for multiple decodes
+			bodyBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Failed to read request body: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			// Decode into dynamicStruct for validation
+			if err := ValidateJSONAgainstStruct(bodyBytes, dynamicStruct); err != nil {
+				http.Error(w, fmt.Sprintf("Invalid JSON payload for validation: %v", err), http.StatusBadRequest)
+				return
+			}
+			// Decode into a generic map for further processing
+			if err := json.Unmarshal(bodyBytes, &input); err != nil {
 				http.Error(w, fmt.Sprintf("Invalid JSON payload: %v", err), http.StatusBadRequest)
 				return
 			}
@@ -264,4 +281,38 @@ func handleSlangroomRequest(file fouter.SlangFile, w http.ResponseWriter, r *htt
 	if _, err := w.Write(formattedOutput); err != nil {
 		log.Printf("Error writing response: %v", err)
 	}
+}
+func ValidateJSONAgainstStruct(data []byte, schemaStruct interface{}) error {
+	// Generate JSON schema from the struct
+	schema := jsonschema.Reflect(schemaStruct)
+
+	// Marshal schema to JSON
+	schemaJSON, err := json.Marshal(schema)
+	if err != nil {
+		return fmt.Errorf("failed to generate schema: %w", err)
+	}
+
+	// Compile the schema using jsonschema/v5
+	compiler := jsschema.NewCompiler()
+	if err := compiler.AddResource("schema.json", bytes.NewReader(schemaJSON)); err != nil {
+		return fmt.Errorf("failed to add schema resource: %w", err)
+	}
+
+	compiledSchema, err := compiler.Compile("schema.json")
+	if err != nil {
+		return fmt.Errorf("failed to compile schema: %w", err)
+	}
+
+	// Unmarshal JSON data into a map[string]interface{} for validation
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON for validation: %w", err)
+	}
+
+	// Validate the input JSON data
+	if err := compiledSchema.Validate(jsonData); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	return nil
 }
