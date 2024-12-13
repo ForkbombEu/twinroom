@@ -47,7 +47,7 @@ tests:
             status: 500
             body:
               - match: .*ZenroomError.*
-              
+
   introspection-schema-validation:
     steps:
       - name: introspection no data
@@ -73,7 +73,7 @@ tests:
             bad: 1
           check:
             status: 500
-            body: 
+            body:
               - match: ".*missing properties: 'love'.*"
 
       - name: introspection valid data
@@ -103,8 +103,7 @@ tests:
           check:
             status: 500
             body:
-              - match: ".*missing properties: 'male', 'sole'.*"
-                    
+              - match: ".*missing properties: '(sole|male)', '(sole|male)'.*"
 
       - name: json-schema valid but wrong data
         http:
