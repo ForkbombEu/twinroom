@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/ForkbombEu/fouter"
@@ -270,7 +271,7 @@ func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w 
 	var jsonData interface{}
 	if err := json.Unmarshal([]byte(output.Output), &jsonData); err != nil {
 		log.Printf("Error parsing output as JSON: %v", err)
-		http.Error(w, "Invalid JSON in output", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Invalid JSON in output: %s", output.Output), http.StatusInternalServerError)
 		return
 	}
 
@@ -293,6 +294,7 @@ func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w 
 func ValidateJSONAgainstStruct(data []byte, schemaStruct interface{}) error {
 	// Generate JSON schema from the struct
 	schema := jsonschema.Reflect(schemaStruct)
+	fmt.Println(reflect.TypeOf(schemaStruct))
 
 	// Marshal schema to JSON
 	schemaJSON, err := json.Marshal(schema)
