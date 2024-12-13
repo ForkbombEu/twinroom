@@ -75,7 +75,13 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 				dynamicStruct, _ = utils.GenerateStruct(*metadata, "")
 			} else {
 				introspectionData, err = slangroom.Introspect(file.Content)
-				if err != nil {
+				if err == nil {
+					data, cleanErr := utils.CleanIntrospection(file.Content, introspectionData)
+					if err != nil {
+						log.Printf("unexpected error during introspection: %v", cleanErr)
+					}
+					introspectionData = data
+				} else {
 					introspectionData = ""
 				}
 				dynamicStruct, _ = utils.GenerateStruct(utils.CommandMetadata{}, introspectionData)
