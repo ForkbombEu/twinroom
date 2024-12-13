@@ -43,9 +43,7 @@ jobs:
          out/bin/gemini -d  &
          sleep 5
       - name: Step CI Action
-        uses: stepci/stepci@main
-        with:
-          workflow: "workflow.stepci.yml"
+        run: npx stepci run workflow.stepci.yml 
   release:
     runs-on: ubuntu-latest
     needs: test
