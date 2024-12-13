@@ -41,6 +41,7 @@ jobs:
         run: |
          make  build
          out/bin/gemini -d  &
+         sleep 5
       - name: Step CI Action
         uses: stepci/stepci@main
         with:
