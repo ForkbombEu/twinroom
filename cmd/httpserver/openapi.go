@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"github.com/ForkbombEu/fouter"
@@ -294,8 +293,6 @@ func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w 
 func ValidateJSONAgainstStruct(data []byte, schemaStruct interface{}) error {
 	// Generate JSON schema from the struct
 	schema := jsonschema.Reflect(schemaStruct)
-	fmt.Println(reflect.TypeOf(schemaStruct))
-
 	// Marshal schema to JSON
 	schemaJSON, err := json.Marshal(schema)
 	if err != nil {
