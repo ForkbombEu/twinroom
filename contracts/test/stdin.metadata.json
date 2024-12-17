@@ -6,6 +6,7 @@
             "description": "file to read",
             "file": true,
             "rawdata": true
+
         }
     ]
 }

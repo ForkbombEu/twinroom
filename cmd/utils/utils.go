@@ -8,7 +8,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
 	"github.com/spf13/cobra"
@@ -18,18 +23,22 @@ import (
 type CommandMetadata struct {
 	Description string `json:"description"`
 	Arguments   []struct {
-		Name        string `json:"name"`
-		Description string `json:"description,omitempty"`
+		Name        string                 `json:"name"`
+		Description string                 `json:"description,omitempty"`
+		Type        string                 `json:"type,omitempty"`
+		Properties  map[string]interface{} `json:"properties,omitempty"` // For complex object types
 	} `json:"arguments"`
 	Options []struct {
-		Name        string   `json:"name"`
-		Description string   `json:"description,omitempty"`
-		Default     string   `json:"default,omitempty"`
-		Choices     []string `json:"choices,omitempty"`
-		Env         []string `json:"env,omitempty"`
-		Hidden      bool     `json:"hidden,omitempty"`
-		File        bool     `json:"file,omitempty"`
-		RawData     bool     `json:"rawdata,omitempty"`
+		Name        string                 `json:"name"`
+		Description string                 `json:"description,omitempty"`
+		Default     string                 `json:"default,omitempty"`
+		Choices     []string               `json:"choices,omitempty"`
+		Env         []string               `json:"env,omitempty"`
+		Hidden      bool                   `json:"hidden,omitempty"`
+		File        bool                   `json:"file,omitempty"`
+		RawData     bool                   `json:"rawdata,omitempty"`
+		Type        string                 `json:"type,omitempty"`
+		Properties  map[string]interface{} `json:"properties,omitempty"` // For complex object types
 	} `json:"options"`
 }
 
@@ -39,6 +48,15 @@ type FlagData struct {
 	Env     []string
 	File    [2]bool
 }
+type codec struct {
+	Encoding string `json:"encoding"`
+	Missing  bool   `json:"missing"`
+	Name     string `json:"name"`
+	Zentype  string `json:"zentype"`
+}
+
+// Introspection contains the data coming from zenroom introspection
+type Introspection map[string]codec
 
 // LoadAdditionalData loads and validates JSON data for additional fields in SlangroomInput.
 func LoadAdditionalData(path string, filename string, input *slangroom.SlangroomInput) error {
@@ -126,14 +144,33 @@ func NormalizeArgumentName(name string) string {
 
 // Helper function to get argument names in order from metadata
 func GetArgumentNames(arguments []struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Type        string                 `json:"type,omitempty"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
 }) []string {
 	names := make([]string, len(arguments))
 	for i, arg := range arguments {
 		names[i] = arg.Name
 	}
 	return names
+}
+
+// function to retrieve only the name of a flag
+func GetFlagName(flagStr string) string {
+	// Split the flag string by commas
+	names := strings.Split(flagStr, ", ")
+	for _, name := range names {
+		name = strings.TrimSpace(name)
+		if strings.HasPrefix(name, "--") {
+			flagParts := strings.Fields(strings.TrimPrefix(name, "--"))
+			return flagParts[0]
+		}
+		if strings.HasPrefix(name, "-") && len(name) == 1 {
+			return strings.TrimPrefix(name, "-")
+		}
+	}
+	return ""
 }
 
 func isValidChoice(value string, choices []string) bool {
@@ -311,11 +348,260 @@ func ValidateFlags(cmd *cobra.Command, flagContents map[string]FlagData, argCont
 	return nil
 }
 
+// map a string representing a type to the type itself
+func MapTypeToGoType(typeStr string, elemTypeStr string) reflect.Type {
+	switch strings.ToLower(typeStr) {
+	case "string":
+		return reflect.TypeOf("")
+	case "integer", "int":
+		return reflect.TypeOf(0)
+	case "number", "float", "float64":
+		return reflect.TypeOf(0.0)
+	case "boolean", "bool":
+		return reflect.TypeOf(false)
+	case "array", "[]":
+		elemType := MapTypeToGoType(elemTypeStr, "") // Recursively map element type
+		return reflect.SliceOf(elemType)
+	case "dictionary", "map", "object":
+		elemType := MapTypeToGoType(elemTypeStr, "")
+		return reflect.MapOf(reflect.TypeOf(""), elemType)
+	default:
+		return reflect.TypeOf("") // Default to string if type is unknown
+	}
+}
+
+// returns the default value from a given type
+func CreateDefaultValue(typeStr string, elemTypeStr string, nestedFields ...reflect.StructField) interface{} {
+	switch strings.ToLower(typeStr) {
+	case "string":
+		return ""
+	case "integer", "int":
+		return 0
+	case "number", "float", "float64":
+		return 0.0
+	case "boolean", "bool":
+		return false
+	case "array", "[]":
+		elemType := CreateDefaultValue(elemTypeStr, "") // Recursively get default value for array element type
+		return reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(elemType)), 0, 0).Interface()
+	case "dictionary", "map", "object":
+		if len(nestedFields) > 0 {
+			// Handle nested object fields by creating a struct
+			structFields := []reflect.StructField{}
+			for _, field := range nestedFields {
+				structFields = append(structFields, reflect.StructField{
+					Name: field.Name,
+					Type: field.Type,
+					Tag:  field.Tag,
+				})
+			}
+			// Create a struct and populate it with default values for each field
+			structType := reflect.StructOf(structFields)
+			structValue := reflect.New(structType).Elem()
+
+			// Set default values for the struct fields
+			for i := 0; i < structType.NumField(); i++ {
+				field := structType.Field(i)
+				defaultValue := CreateDefaultValue(field.Type.String(), "", nestedFields...)
+				structValue.Field(i).Set(reflect.ValueOf(defaultValue))
+			}
+
+			return structValue.Interface()
+		}
+		// If no nested fields, return a default empty struct
+		return reflect.New(reflect.StructOf([]reflect.StructField{})).Elem().Interface()
+	default:
+		return "" // Default to string if type is unknown
+	}
+}
+
+// Coverts zentype to type
+func ZentypeToType(codec codec) string {
+	switch codec.Zentype {
+	case "a":
+		return "array"
+	case "d":
+		return "object"
+	default:
+		return codec.Encoding
+	}
+}
+
+// Helper function to handle nested objects from metadata.
+func ParseObjectProperties(properties map[string]interface{}) []reflect.StructField {
+	var nestedFields []reflect.StructField
+	title := cases.Title(language.English)
+
+	for name, value := range properties {
+		fieldName := title.String(name)
+		switch v := value.(type) {
+		case map[string]interface{}:
+			if v["type"] == "object" {
+				// Recursively parse nested objects
+				if subProperties, ok := v["properties"].(map[string]interface{}); ok {
+					nestedFields = append(nestedFields, reflect.StructField{
+						Name: fieldName,
+						Type: reflect.StructOf(ParseObjectProperties(subProperties)),
+						Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+					})
+				}
+			} else {
+				// Handle primitive types
+				nestedFields = append(nestedFields, reflect.StructField{
+					Name: fieldName,
+					Type: MapTypeToGoType(v["type"].(string), ""),
+					Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+				})
+			}
+		default:
+			// Invalid structure
+			fmt.Printf("Warning: invalid property structure for %s\n", name)
+		}
+	}
+	return nestedFields
+}
+
+// Function that dynamically generates a go structure from introspection or metadata
+func GenerateStruct(metadata CommandMetadata, introspectionData string) (interface{}, error) {
+	var fields []reflect.StructField
+	title := cases.Title(language.English)
+
+	// If introspection data is provided, parse it and generate the struct
+	if introspectionData != "" {
+		var introspection Introspection
+		if err := json.Unmarshal([]byte(introspectionData), &introspection); err != nil {
+			return nil, fmt.Errorf("failed to parse introspection data: %v", err)
+		}
+
+		// Add fields from introspection data
+		for _, info := range introspection {
+			typeStr := ZentypeToType(info)
+			fields = append(fields, reflect.StructField{
+				Name: title.String(info.Name),
+				Type: MapTypeToGoType(typeStr, info.Encoding),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, info.Name)),
+			})
+		}
+	}
+
+	// Add fields for arguments from metadata
+	for _, arg := range metadata.Arguments {
+		name := NormalizeArgumentName(arg.Name)
+		if arg.Type == "object" && arg.Properties != nil {
+			// Nested object handling
+			nestedFields := ParseObjectProperties(arg.Properties)
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: reflect.StructOf(nestedFields),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		} else {
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: MapTypeToGoType(arg.Type, "string"),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		}
+	}
+
+	// Add fields for options from metadata
+	for _, opt := range metadata.Options {
+		name := GetFlagName(opt.Name)
+		if opt.Type == "object" && opt.Properties != nil {
+			// Nested object handling
+			nestedFields := ParseObjectProperties(opt.Properties)
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: reflect.StructOf(nestedFields),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
+			})
+		} else if opt.File && !opt.RawData {
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: MapTypeToGoType(opt.Type, ""),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s" jsonschema_extras:"format=binary"`, name)),
+			})
+		} else {
+			var choices string
+			for i, choice := range opt.Choices {
+				if i > 0 {
+					choices += ","
+				}
+				choices += "enum=" + choice
+			}
+			if opt.Default != "" {
+				if choices != "" {
+					choices += ","
+				}
+				choices += "default=" + opt.Default
+			}
+			fields = append(fields, reflect.StructField{
+				Name: title.String(name),
+				Type: MapTypeToGoType(opt.Type, ""),
+				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s" jsonschema:"%s"`, name, choices)),
+			})
+		}
+	}
+
+	// Create the final struct
+	structType := reflect.StructOf(fields)
+	return reflect.New(structType).Interface(), nil
+}
+
 // a functionfor defer error handling
 func checks(fs ...func() error) {
 	for i := len(fs) - 1; i >= 0; i-- {
 		if err := fs[i](); err != nil {
 			log.Println("Error::", err)
+		}
+	}
+}
+
+// isDir checks if a given path is a directory
+func IsDir(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err // Error, e.g., the path doesn't exist.
+	}
+	return info.IsDir(), nil
+}
+
+// Utils function that removes from introspection JSON the data generated by slangroom
+func CleanIntrospection(inputStr, jsonStr string) (string, error) {
+	// Find all names between single quotes after "output into" or "output as"
+	re := regexp.MustCompile(`(?:output into|output as) '([^']+)'`)
+	matches := re.FindAllStringSubmatch(inputStr, -1)
+
+	// Extract the names from matches
+	var names []string
+	for _, match := range matches {
+		if len(match) > 1 {
+			names = append(names, match[1])
+		}
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		return "", fmt.Errorf("failed to parse JSON: %v", err)
+	}
+	removeKeys(data, names)
+	cleanedJSON, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JSON: %v", err)
+	}
+
+	return string(cleanedJSON), nil
+}
+
+// removeKeys removes keys from the map if they match the provided names.
+func removeKeys(data map[string]interface{}, names []string) {
+	for _, name := range names {
+		delete(data, name)
+	}
+
+	// Recursively clean nested maps
+	for _, value := range data {
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			removeKeys(nestedMap, names)
 		}
 	}
 }

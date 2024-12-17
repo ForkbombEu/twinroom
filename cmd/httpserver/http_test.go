@@ -1,165 +1,119 @@
 package httpserver
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/ForkbombEu/fouter"
-	slangroom "github.com/dyne/slangroom-exec/bindings/go"
+	swagger "github.com/davidebianchi/gswagger"
+	"github.com/stretchr/testify/require"
 )
 
-func TestListSlangFilesHandler(t *testing.T) {
-	slangFiles := map[string][]string{
-		"example_dir": {"file1.slang", "file2.slang"},
+func TestGenerateOpenAPIRouter(t *testing.T) {
+	// Mock input for HTTPInput
+	input := HTTPInput{
+		BinaryName:     "TestBinary",
+		Path:           "testdata/slang", // Mocked slang directory for testing
+		EmbeddedFolder: nil,
+		EmbeddedPath:   "",
 	}
 
-	req, err := http.NewRequest("GET", "/slang/", nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
+	// Create mock slang file in testdata directory
+	mockSlangFile := "testdata/slang/example.slang"
+	mockSlangContent := `Rule unknown ignore
+Given I have a 'string' named 'test'
+Then print the data
+`
+	err := os.MkdirAll(filepath.Dir(mockSlangFile), os.ModePerm)
+	require.NoError(t, err)
+	err = os.WriteFile(mockSlangFile, []byte(mockSlangContent), 0600)
+	require.NoError(t, err)
+	defer func() {
+		if err := os.RemoveAll("./testdata"); err != nil {
+			t.Errorf("Failed to remove test directory: %v", err)
+		}
+	}()
 
-	rr := httptest.NewRecorder()
-	handler := listSlangFilesHandler(slangFiles)
+	ctx := context.Background()
 
-	handler.ServeHTTP(rr, req)
+	// Generate router
+	muxRouter, err := GenerateOpenAPIRouter(ctx, input)
+	require.NoError(t, err)
+	require.NotNil(t, muxRouter)
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code %v, got %v", http.StatusOK, rr.Code)
-	}
+	t.Run("correctly exposes OpenAPI documentation", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, swagger.DefaultJSONDocumentationPath, nil)
 
-	body := rr.Body.String()
-	if !contains(body, "Available contract files:") {
-		t.Errorf("Expected response to contain 'Available contract files:', got %v", body)
-	}
-	if !contains(body, "file1.slang") || !contains(body, "file2.slang") {
-		t.Errorf("Expected response to contain 'file1.slang' and 'file2.slang', got %v", body)
-	}
-}
+		muxRouter.ServeHTTP(w, req)
+		body := w.Result().Body // //nolint:bodyclose
+		defer func() {
+			if err := body.Close(); err != nil {
+				t.Errorf("Failed to close body: %v", err)
+			}
+		}()
 
-func TestSlangFilePageHandler(t *testing.T) {
-	file := fouter.SlangFile{
-		FileName: "test.slang",
-		Content:  "contract content",
-		Dir:      "example_dir",
-		Path:     "example_dir/test.slang",
-	}
+		require.Equal(t, http.StatusOK, w.Result().StatusCode)                      //nolint:bodyclose
+		require.Equal(t, "application/json", w.Result().Header.Get("Content-Type")) //nolint:bodyclose
 
-	req, err := http.NewRequest("GET", "/slang/test", nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
+		bodycontent, err := io.ReadAll(body)
+		require.NoError(t, err)
+		expected := `{"info":{"title":"TestBinary","version":"1.0.0"},"openapi":"3.0.0","paths":{"/example":{"get":{"description":"Rule unknown ignore\n\nGiven I have a 'string' named 'test'\n\nThen print the data\n\n","parameters":[{"description":"The test","in":"query","name":"test","schema":{"type":"string"}}],"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"output":{"items":{"type":"string"},"type":"array"}},"required":["output"],"type":"object"}}},"description":"The slangroom execution output, splitted by newline"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"items":{"type":"string"},"type":"array"}},"required":["message"],"type":"object"}}},"description":"Slangroom execution error"}},"tags":["📑 Zencodes"]},"post":{"description":"Rule unknown ignore\n\nGiven I have a 'string' named 'test'\n\nThen print the data\n\n","requestBody":{"content":{"application/json":{"schema":{"properties":{"test":{"type":"string"}},"required":["test"],"type":"object"}}}},"responses":{"200":{"content":{"application/json":{"schema":{"properties":{"output":{"items":{"type":"string"},"type":"array"}},"required":["output"],"type":"object"}}},"description":"The slangroom execution output, split by newline"},"500":{"content":{"application/json":{"schema":{"properties":{"message":{"items":{"type":"string"},"type":"array"}},"required":["message"],"type":"object"}}},"description":"Slangroom execution error"}},"tags":["📑 Zencodes"]}}},"tags":[{"description":"Endpoints generated over the Zencode smart contracts","name":"📑 Zencodes"}]}`
+		require.JSONEq(t, expected, string(bodycontent), "actual json data: %s", body)
+	})
 
-	rr := httptest.NewRecorder()
-	handler := slangFilePageHandler(file)
+	// Test POST route execution
+	t.Run("correctly handles POST route", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		payload := map[string]string{"test": "example data"}
+		payloadBytes, err := json.Marshal(payload)
+		require.NoError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/example", bytes.NewReader(payloadBytes))
+		req.Header.Set("Content-Type", "application/json")
 
-	handler.ServeHTTP(rr, req)
+		muxRouter.ServeHTTP(w, req)
+		body := w.Result().Body //nolint:bodyclose
+		defer func() {
+			if err := body.Close(); err != nil {
+				t.Errorf("Failed to close body: %v", err)
+			}
+		}()
 
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code %v, got %v", http.StatusOK, rr.Code)
-	}
+		require.Equal(t, http.StatusOK, w.Result().StatusCode)                      //nolint:bodyclose
+		require.Equal(t, "application/json", w.Result().Header.Get("Content-Type")) //nolint:bodyclose
 
-	body := rr.Body.String()
-	if !contains(body, "contract content") {
-		t.Errorf("Expected response to contain 'contract content', got %v", body)
-	}
-	if !contains(body, "Execute test.slang") {
-		t.Errorf("Expected response to contain 'Execute test.slang', got %v", body)
-	}
-}
+		var response map[string]interface{}
+		err = json.NewDecoder(body).Decode(&response)
+		require.NoError(t, err)
+		require.Contains(t, response, "test")
+		require.Equal(t, "example data", response["test"])
+	})
 
-func TestExecuteSlangFileHandler_Success(t *testing.T) {
-	file := fouter.SlangFile{
-		FileName: "test.slang",
-		Content: `Given nothing
-Then print the string 'Hello'`,
-	}
+	t.Run("correctly handles GET route", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/example?test=example%20data", nil)
 
-	req, err := http.NewRequest("POST", "/slang/execute/test", nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
+		muxRouter.ServeHTTP(w, req)
+		body := w.Result().Body //nolint:bodyclose
+		defer func() {
+			if err := body.Close(); err != nil {
+				t.Errorf("Failed to close body: %v", err)
+			}
+		}()
 
-	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file, "", nil)
+		require.Equal(t, http.StatusOK, w.Result().StatusCode)                      //nolint:bodyclose
+		require.Equal(t, "application/json", w.Result().Header.Get("Content-Type")) //nolint:bodyclose
 
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code %v, got %v", http.StatusOK, rr.Code)
-	}
-
-	var response map[string]interface{}
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("Failed to decode JSON response: %v", err)
-	}
-
-	if response["output"] != `{"output":["Hello"]}` {
-		t.Errorf("Expected output to be 'Hello', got %v", response["output"])
-	}
-}
-func TestExecuteSlangFileHandler_With_Data(t *testing.T) {
-	file := fouter.SlangFile{
-		FileName: "test.slang",
-		Content: `Given nothing
-Then print the string 'Hello'`,
-	}
-	input := slangroom.SlangroomInput{Contract: file.Content}
-	req, err := http.NewRequest("POST", "/slang/execute/test", nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file, "", &input)
-
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusOK {
-		t.Errorf("Expected status code %v, got %v", http.StatusOK, rr.Code)
-	}
-
-	var response map[string]interface{}
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatalf("Failed to decode JSON response: %v", err)
-	}
-
-	if response["output"] != `{"output":["Hello"]}` {
-		t.Errorf("Expected output to be 'Hello', got %v", response["output"])
-	}
-}
-
-func TestExecuteSlangFileHandler_MethodNotAllowed(t *testing.T) {
-	file := fouter.SlangFile{
-		FileName: "test.slang",
-		Content:  "contract content",
-	}
-
-	req, err := http.NewRequest("GET", "/slang/execute/test", nil)
-	if err != nil {
-		t.Fatalf("Failed to create request: %v", err)
-	}
-
-	rr := httptest.NewRecorder()
-	handler := executeSlangFileHandler(file, "", nil)
-
-	handler.ServeHTTP(rr, req)
-
-	if rr.Code != http.StatusMethodNotAllowed {
-		t.Errorf("Expected status code %v, got %v", http.StatusMethodNotAllowed, rr.Code)
-	}
-
-	body := rr.Body.String()
-	if !contains(body, "Invalid request method") {
-		t.Errorf("Expected response to contain 'Invalid request method', got %v", body)
-	}
-}
-
-// Helper function to check if a substring is in a string
-func contains(str, substr string) bool {
-	return len(str) >= len(substr) && strings.Contains(str, substr)
+		var response map[string]interface{}
+		err := json.NewDecoder(body).Decode(&response)
+		require.NoError(t, err)
+		require.Contains(t, response, "test")
+		require.Equal(t, "example data", response["test"])
+	})
 }

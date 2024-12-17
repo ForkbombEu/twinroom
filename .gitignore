@@ -13,6 +13,7 @@
 !/.env.sample
 !/.cruft.json
 !/.goreleaser.yaml
+!/workflow.stepci.yml
 
 !.github/workflows/*.yml
 

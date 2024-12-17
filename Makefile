@@ -35,9 +35,9 @@ $(SLANGROOM_EXEC):
 
 
 ## Build:
-build: vendor $(SLANGROOM_EXEC) ## Build your project and put the output binary in out/bin/
+build:  $(SLANGROOM_EXEC) ## Build your project and put the output binary in out/bin/
 	mkdir -p out/bin
-	GO111MODULE=on $(GOCMD) build -mod vendor -o out/bin/$(BINARY_NAME) .
+	GO111MODULE=on $(GOCMD) build -o out/bin/$(BINARY_NAME) .
 
 clean: ## Remove build related file
 	rm -fr ./bin

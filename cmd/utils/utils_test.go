@@ -155,23 +155,27 @@ func TestLoadMetadata(t *testing.T) {
 	sampleMetadata := CommandMetadata{
 		Description: "Test description",
 		Arguments: []struct {
-			Name        string `json:"name"`
-			Description string `json:"description,omitempty"`
+			Name        string                 `json:"name"`
+			Description string                 `json:"description,omitempty"`
+			Type        string                 `json:"type,omitempty"`
+			Properties  map[string]interface{} `json:"properties,omitempty"`
 		}{
 			{Name: "arg1", Description: "Argument 1 description"},
-			{Name: "arg2", Description: "Argument 2 description"},
+			{Name: "arg2", Description: "Argument 2 description", Type: "integer"},
 		},
 		Options: []struct {
-			Name        string   `json:"name"`
-			Description string   `json:"description,omitempty"`
-			Default     string   `json:"default,omitempty"`
-			Choices     []string `json:"choices,omitempty"`
-			Env         []string `json:"env,omitempty"`
-			Hidden      bool     `json:"hidden,omitempty"`
-			File        bool     `json:"file,omitempty"`
-			RawData     bool     `json:"rawdata,omitempty"`
+			Name        string                 `json:"name"`
+			Description string                 `json:"description,omitempty"`
+			Default     string                 `json:"default,omitempty"`
+			Choices     []string               `json:"choices,omitempty"`
+			Env         []string               `json:"env,omitempty"`
+			Hidden      bool                   `json:"hidden,omitempty"`
+			File        bool                   `json:"file,omitempty"`
+			RawData     bool                   `json:"rawdata,omitempty"`
+			Type        string                 `json:"type,omitempty"`
+			Properties  map[string]interface{} `json:"properties,omitempty"`
 		}{
-			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}},
+			{Name: "--option1, -o", Description: "Option 1 description", Default: "default1", Choices: []string{"choice1", "choice2"}, Type: "string"},
 		},
 	}
 	// Create a temporary directory
@@ -260,21 +264,25 @@ func TestConfigureArgumentsAndFlags(t *testing.T) {
 	metadata := &CommandMetadata{
 		Description: "Test command",
 		Arguments: []struct {
-			Name        string `json:"name"`
-			Description string `json:"description,omitempty"`
+			Name        string                 `json:"name"`
+			Description string                 `json:"description,omitempty"`
+			Type        string                 `json:"type,omitempty"`
+			Properties  map[string]interface{} `json:"properties,omitempty"`
 		}{
 			{Name: "<arg1>", Description: "Required argument"},
 			{Name: "[arg2]", Description: "Optional argument"},
 		},
 		Options: []struct {
-			Name        string   `json:"name"`
-			Description string   `json:"description,omitempty"`
-			Default     string   `json:"default,omitempty"`
-			Choices     []string `json:"choices,omitempty"`
-			Env         []string `json:"env,omitempty"`
-			Hidden      bool     `json:"hidden,omitempty"`
-			File        bool     `json:"file,omitempty"`
-			RawData     bool     `json:"rawdata,omitempty"`
+			Name        string                 `json:"name"`
+			Description string                 `json:"description,omitempty"`
+			Default     string                 `json:"default,omitempty"`
+			Choices     []string               `json:"choices,omitempty"`
+			Env         []string               `json:"env,omitempty"`
+			Hidden      bool                   `json:"hidden,omitempty"`
+			File        bool                   `json:"file,omitempty"`
+			RawData     bool                   `json:"rawdata,omitempty"`
+			Type        string                 `json:"type,omitempty"`
+			Properties  map[string]interface{} `json:"properties,omitempty"`
 		}{
 			{Name: "--flag1", Description: "Test flag", Default: "default_value"},
 		},
@@ -323,8 +331,18 @@ func TestValidateFlags(t *testing.T) {
 
 	argContents := make(map[string]interface{})
 
+	// Test for invalid choice
+	err := cmd.Flags().Set("flag2", "invalid_choice")
+	if err != nil {
+		t.Errorf("Unexpected error setting test flag: %v", err)
+	}
+	err = ValidateFlags(cmd, flagContents, argContents, nil)
+	if err == nil {
+		t.Errorf("Expected error for invalid flag choice, got: nil")
+	}
+
 	// Test for valid choice and check environment variable setting
-	err := cmd.Flags().Set("flag1", "opt1")
+	err = cmd.Flags().Set("flag1", "opt1")
 	if err != nil {
 		t.Errorf("Unexpected error setting test flag: %v", err)
 	}
@@ -460,15 +478,5 @@ func TestValidateFlags(t *testing.T) {
 
 	if input.Data != expected {
 		t.Errorf("Expected %s for jsonFlag, got: %v", expected, input.Data)
-	}
-
-	// Test for invalid choice
-	err = cmd.Flags().Set("flag2", "invalid_choice")
-	if err != nil {
-		t.Errorf("Unexpected error setting test flag: %v", err)
-	}
-	err = ValidateFlags(cmd, flagContents, argContents, nil)
-	if err == nil {
-		t.Errorf("Expected error for invalid flag choice, got: nil")
 	}
 }

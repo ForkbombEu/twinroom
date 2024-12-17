@@ -1,0 +1,136 @@
+version: "1.1"
+name: Status Check
+env:
+  host: localhost:3000
+tests:
+  hello:
+    steps:
+      - name: GET request
+        http:
+          url: http://${{env.host}}/test/hello
+          method: GET
+          check:
+            status: 200
+            json:
+              output:
+                - Hello_from_embedded!
+
+  notfound:
+    steps:
+      - name: GET request
+        http:
+          url: http://${{env.host}}/notfound
+          method: GET
+          check:
+            status: 404
+            body: 404 page not found
+
+  broken:
+    steps:
+      - name: GET /broken
+        http:
+          url: http://${{env.host}}/test/broken
+          method: GET
+          check:
+            status: 500
+            body:
+              - match: .*ZenroomError.*
+
+      - name: POST /broken no body
+        http:
+          url: http://${{env.host}}/test/broken
+          method: POST
+          headers:
+            Content-Type: application/json
+          json: {}
+          check:
+            status: 500
+            body:
+              - match: .*ZenroomError.*
+
+  introspection-schema-validation:
+    steps:
+      - name: introspection no data
+        http:
+          url: http://${{env.host}}/test/introspection
+          method: POST
+          headers:
+            Content-Type: application/json
+          json: {}
+          check:
+            status: 500
+            body:
+              - match: ".*missing properties: 'love'.*"
+
+
+      - name: introspection invalid data
+        http:
+          url: http://${{env.host}}/test/introspection
+          method: POST
+          headers:
+            Content-Type: application/json
+          json:
+            bad: 1
+          check:
+            status: 500
+            body:
+              - match: ".*missing properties: 'love'.*"
+
+      - name: introspection valid data
+        http:
+          url: http://${{env.host}}/test/introspection
+          method: POST
+          headers:
+            Content-Type: application/json
+          json:
+            love: 'you'
+          check:
+            status: 200
+            json:
+              love: you
+
+  metadata-json-schema:
+    steps:
+      - name: json-schema invalid data
+        http:
+          url: http://${{env.host}}/test/withschema
+          method: POST
+          headers:
+            Content-Type: application/json
+          json:
+            love:
+              wrong: 'broken'
+          check:
+            status: 500
+            body:
+              - match: ".*missing properties: '(sole|male)', '(sole|male)'.*"
+
+      - name: json-schema valid but wrong data
+        http:
+          url: http://${{env.host}}/test/withschema
+          method: POST
+          headers:
+            Content-Type: application/json
+          json:
+            wrong: 'broken'
+          check:
+            status: 500
+            body:
+              - match: ".*missing properties: 'love'.*"
+
+      - name: json-schema valid data
+        http:
+          url: http://${{env.host}}/test/withschema
+          method: POST
+          headers:
+            Content-Type: application/json
+          json:
+            love:
+              male: 'ok'
+              sole: 'ok'
+          check:
+            status: 200
+            json:
+              love:
+                male: 'ok'
+                sole: 'ok'
