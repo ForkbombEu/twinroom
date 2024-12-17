@@ -14,6 +14,7 @@ type HTTPInput struct {
 	BinaryName     string
 	EmbeddedFolder *embed.FS
 	EmbeddedPath   string
+	EmbeddedSubDir string
 	Path           string
 	FileName       string
 }

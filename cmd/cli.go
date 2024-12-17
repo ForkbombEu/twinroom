@@ -91,6 +91,21 @@ func addEmbeddedFileCommands() {
 					Use:   strings.ReplaceAll(dirPath, string(os.PathSeparator), " "),
 					Short: fmt.Sprintf("Commands for files in %s", dirPath),
 				}
+				dirCmd.Run = func(_ *cobra.Command, args []string) {
+					if daemon {
+						httpInput := httpserver.HTTPInput{
+							BinaryName:     filepath.Base(os.Args[0]),
+							EmbeddedFolder: &contracts,
+							EmbeddedPath:   "contracts",
+							EmbeddedSubDir: dirPath,
+						}
+						if err := httpserver.StartHTTPServer(httpInput); err != nil {
+							log.Printf("Failed to start HTTP server: %v\n", err)
+							os.Exit(1)
+						}
+						return
+					}
+				}
 				dirCommands[dirPath] = dirCmd
 				parentCmd.AddCommand(dirCmd)
 			}
