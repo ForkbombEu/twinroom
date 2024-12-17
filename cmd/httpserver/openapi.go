@@ -107,7 +107,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 						Description: "Slangroom execution error",
 					},
 				},
-				Description: strings.ReplaceAll(file.Content, "\n", "\n\n"),
+				Description: file.Content,
 			})
 			if err != nil {
 				return
@@ -172,7 +172,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 						Description: "Slangroom execution error",
 					},
 				},
-				Description: strings.ReplaceAll(file.Content, "\n", "\n\n"),
+				Description: file.Content,
 			})
 			if err != nil {
 				return

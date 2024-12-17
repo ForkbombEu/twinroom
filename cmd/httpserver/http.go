@@ -18,6 +18,24 @@ type HTTPInput struct {
 	FileName       string
 }
 
+const openapiCss = `
+<style>
+	.HttpOperation__Description h1:before {
+		content: "#";
+	}
+	.HttpOperation__Description h1 {
+		font-size: 16px;
+		margin: 0 0;
+		font-style: italic;
+		color: #444;
+		font-weight: 100;
+	}
+	.HttpOperation__Description p {
+		white-space: pre-line;
+	}
+</style>
+`
+
 // StartSHTTPrver starts an HTTP server that serves the OpenAPI documentation via Stoplight Elements.
 // The documentation is available at the `/slang` endpoint.
 func StartHTTPServer(input HTTPInput) error {
@@ -48,11 +66,12 @@ func StartHTTPServer(input HTTPInput) error {
     <title>%s</title>
     <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
+	%s
   </head>
   <body>
     <elements-api layout="sidebar" router="hash" apiDescriptionUrl="%s" />
   </body>
-</html>`, input.BinaryName, apiDescriptionURL)
+</html>`, input.BinaryName, openapiCss, apiDescriptionURL)
 		if err != nil {
 			fmt.Printf("Failed to write HTTP response: %v\n", err)
 		}
