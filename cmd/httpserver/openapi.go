@@ -15,7 +15,7 @@ import (
 	swagger "github.com/davidebianchi/gswagger"
 	"github.com/davidebianchi/gswagger/support/gorilla"
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
-	"github.com/forkbombeu/gemini/cmd/utils"
+	"github.com/forkbombeu/twinroom/cmd/utils"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gorilla/mux"
 	"github.com/invopop/jsonschema"

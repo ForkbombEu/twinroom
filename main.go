@@ -3,7 +3,7 @@ package main
 import (
 	"embed"
 
-	"github.com/forkbombeu/gemini/cmd"
+	"github.com/forkbombeu/twinroom/cmd"
 )
 
 //go:embed contracts

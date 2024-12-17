@@ -1,4 +1,4 @@
-module github.com/forkbombeu/gemini
+module github.com/forkbombeu/twinroom
 
 go 1.23
 

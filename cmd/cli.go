@@ -11,8 +11,8 @@ import (
 
 	"github.com/ForkbombEu/fouter"
 	slangroom "github.com/dyne/slangroom-exec/bindings/go"
-	"github.com/forkbombeu/gemini/cmd/httpserver"
-	"github.com/forkbombeu/gemini/cmd/utils"
+	"github.com/forkbombeu/twinroom/cmd/httpserver"
+	"github.com/forkbombeu/twinroom/cmd/utils"
 	"github.com/spf13/cobra"
 )
 

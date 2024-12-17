@@ -1,6 +1,6 @@
-# Gemini
+# Twinroom
 
-Gemini is a command-line interface (CLI) tool that enables you to execute [slangroom contracts](https://dyne.org/slangroom) written in [Zencode language](https://dev.zenroom.org).
+Twinroom is a command-line interface (CLI) tool that enables you to execute [slangroom contracts](https://dyne.org/slangroom) written in [Zencode language](https://dev.zenroom.org).
 
 Contracts can be both embedded within the tool (compiled at build time) and added dynamically from specified folders (specified at runtime).
 
@@ -10,12 +10,12 @@ When dynamic run-time contract files have the same path as built-in embedded con
 
 ## Installation
 
-To use Gemini, you need Go installed on your system. If you don't have Go installed, you can download it from [golang.org](https://golang.org/dl/).
+To use Twinroom, you need Go installed on your system. If you don't have Go installed, you can download it from [golang.org](https://golang.org/dl/).
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/ForkbombEu/gemini
+git clone https://github.com/ForkbombEu/Twinroom
 ```
 ### Build the executable:
 You can build the executable using either the go build command or the provided Makefile.
@@ -42,49 +42,49 @@ Replace <custom_name> with your desired binary name.
 To list all slangroom files in a specified directory, use the following command:
 
 ```bash
-./out/bin/gemini list <folder>
+./out/bin/twinroom list <folder>
 ```
 If you want to list only embedded files in the contracts folder, simply run:
 
 ```bash
-./out/bin/gemini list
+./out/bin/twinroom list
 ```
 ### Run a file
 
 To execute a specific slangroom file, use the following command:
 
 ```bash
-out/bin/./gemini <folder> <file>
+out/bin/./twinroom <folder> <file>
 ```
 
 If the file is embedded in the `contracts` folder , you can also run it directly by providing just the filename:
 
 
 ```bash
-out/bin/./gemini  <file>
+out/bin/./twinroom  <file>
 ```
 
 Or if it is in a subdir of `contracts`:
 
 ```bash
-out/bin/./gemini  <subdir> <file>
+out/bin/./twinroom  <subdir> <file>
 ```
 
 ### Daemon Mode
 
-Gemini can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `-d` or `--daemon` flag:
+Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `-d` or `--daemon` flag:
 
 ```bash
-./out/bin/gemini -d <folder> <file>
+./out/bin/twinroom -d <folder> <file>
 ```
-If a folder is provided with the `-d` flag and the list command, Gemini will list the available slangroom files via HTTP.
+If a folder is provided with the `-d` flag and the list command, twinroom will list the available slangroom files via HTTP.
 
 ```bash
-./out/bin/gemini list  -d <folder>
+./out/bin/twinroom list  -d <folder>
 ```
 ### Adding Additional Data to Slangroom Contrats
 
-Gemini supports loading additional JSON-based data for each slangroom file. This data can be provided through optional JSON files with specific names, stored alongside the main slangroom file in the same directory. The parameters can be:
+Twinroom supports loading additional JSON-based data for each slangroom file. This data can be provided through optional JSON files with specific names, stored alongside the main slangroom file in the same directory. The parameters can be:
 
 * `data`
 * `keys`
@@ -112,14 +112,14 @@ hello.extra.json
 
 ### Command Arguments and Flags from `metadata.json`
 
-In addition to the above parameters, Gemini allows you to define custom arguments and flags for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
+In addition to the above parameters, Twinroom allows you to define custom arguments and flags for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
 
  * **Arguments**: Custom positional arguments for the command.
  * **Options**: Custom flags that can be passed to the command.
 
  #### Structure of `metadata.json`
 
-The metadata file is automatically read by Gemini to generate appropriate arguments and flags when executing embedded contract files. A typical metadata.json structure might look like this:
+The metadata file is automatically read by Twinroom to generate appropriate arguments and flags when executing embedded contract files. A typical metadata.json structure might look like this:
 
 ```json
 {
@@ -196,25 +196,25 @@ All values provided through arguments and flags are added to the slangroom input
 List all contracts in the examples folder:
 
 ```bash
-./out/bin/gemini list examples
+./out/bin/twinroom list examples
 ```
 
 Run a specific contract:
 
 ```bash
-./out/bin/gemini examples hello
+./out/bin/twinroom examples hello
 ```
 
 Run a contract with arguments and flag:
 
 ```bash
-out/bin/gemini test param username -n myname -D small -t 100
+out/bin/twinroom test param username -n myname -D small -t 100
 ```
 
 Start the HTTP server to expose contract:
 
 ```bash
-./out/bin/gemini -d examples hello
+./out/bin/twinroom -d examples hello
 ```
 
 

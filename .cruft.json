@@ -4,12 +4,12 @@
   "checkout": null,
   "context": {
     "cookiecutter": {
-      "project_name": "gemini",
-      "project_slug": "gemini",
+      "project_name": "twinroom",
+      "project_slug": "twinroom",
       "project_description": "Slangroom double sided executor",
       "full_name": "Puria Nafisi Azizi",
       "email": "puria@dyne.org",
-      "repo": "github.com/forkbombeu/gemini",
+      "repo": "github.com/forkbombeu/twinroom",
       "go_version": "1.23",
       "_template": "https://github.com/dyne/starters"
     }
