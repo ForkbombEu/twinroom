@@ -19,7 +19,7 @@ type HTTPInput struct {
 	FileName       string
 }
 
-const openapiCss = `
+const openapiCSS = `
 <style>
 	.HttpOperation__Description h1:before {
 		content: "#";
@@ -72,7 +72,7 @@ func StartHTTPServer(input HTTPInput) error {
   <body>
     <elements-api layout="sidebar" router="hash" apiDescriptionUrl="%s" />
   </body>
-</html>`, input.BinaryName, openapiCss, apiDescriptionURL)
+</html>`, input.BinaryName, openapiCSS, apiDescriptionURL)
 		if err != nil {
 			fmt.Printf("Failed to write HTTP response: %v\n", err)
 		}
