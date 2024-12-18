@@ -9,8 +9,9 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davidebianchi/gswagger v0.10.0 h1:RrFeWwjAAewWNm3x4kqFzbg+KGZ5Ak2FRdOdY72ZJe8=
 github.com/davidebianchi/gswagger v0.10.0/go.mod h1:2Lra+xPka3Vu/FFvh24LgqfRPpbay5uFSffVKET5D5A=
-github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241129112151-e8864edd2fb4 h1:uI3pec0COHw+TmneeDCg3qEFjdg5FpEAwrn+eTasktY=
-github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241129112151-e8864edd2fb4/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
+github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241217152329-ff77cc681922 h1:darm4cfsmYK0TPxuSNItzZLmB/+JQ+VUZ535H+nJ/Bc=
+github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241217152329-ff77cc681922/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
+
 github.com/getkin/kin-openapi v0.128.0 h1:jqq3D9vC9pPq1dGcOCv7yOp1DaEe7c/T1vzcLbITSp4=
 github.com/getkin/kin-openapi v0.128.0/go.mod h1:OZrfXzUfGrNbsKj+xmFBx6E5c6yH3At/tAKSc2UszXM=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=

@@ -117,7 +117,7 @@ func addEmbeddedFileCommands() {
 			isMetadata = true
 			// Set command description
 			fileCmd.Short = metadata.Description
-			argContents, flagContents, err = utils.ConfigureArgumentsAndFlags(fileCmd, metadata)
+			argContents, flagContents, err = utils.ConfigureArgumentsAndFlags(fileCmd, metadata, "")
 			if err != nil {
 				log.Printf("Failed to set arguments or flags: %v\n", err)
 				os.Exit(1)
@@ -125,8 +125,18 @@ func addEmbeddedFileCommands() {
 			fileCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
 				return utils.ValidateFlags(cmd, flagContents, argContents, &input)
 			}
+		} else {
+			introspectionData, err := slangroom.Introspect(file.Content)
+			if err == nil {
+				introspectionData = utils.CleanIntrospection(file.Content, introspectionData)
+			} else {
+				introspectionData = ""
+			}
+			utils.ConfigureArgumentsAndFlags(fileCmd, metadata, introspectionData)
 		}
-
+		fileCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
+			return utils.ValidateFlags(cmd, flagContents, argContents, &input)
+		}
 		// Set the command's run function
 		fileCmd.Run = func(_ *cobra.Command, args []string) {
 			runFileCommand(file, args, metadata, argContents, isMetadata, &input)
