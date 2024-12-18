@@ -132,8 +132,14 @@ func addEmbeddedFileCommands() {
 			} else {
 				introspectionData = ""
 			}
-			utils.ConfigureArgumentsAndFlags(fileCmd, metadata, introspectionData)
+			argContents, flagContents, err = utils.ConfigureArgumentsAndFlags(fileCmd, metadata, introspectionData)
+			if err != nil {
+				log.Printf("Failed to set arguments or flags: %v\n", err)
+				os.Exit(1)
+			}
+			isMetadata = true
 		}
+
 		fileCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
 			return utils.ValidateFlags(cmd, flagContents, argContents, &input)
 		}

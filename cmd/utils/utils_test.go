@@ -321,6 +321,9 @@ Then print the 'love'`
 		}
 
 		args, flags, err := ConfigureArgumentsAndFlags(cmd, nil, data)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 		if len(args) != 0 || len(flags) != 2 {
 			t.Errorf("Expected  0 arguments and 2 flag, got %d arguments and %d flags", len(args), len(flags))
 		}
