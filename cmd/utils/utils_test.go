@@ -257,53 +257,84 @@ func TestMergeJSON(t *testing.T) {
 
 // TestConfigureArgumentsAndFlags tests ConfigureArgumentsAndFlags function.
 func TestConfigureArgumentsAndFlags(t *testing.T) {
-	cmd := &cobra.Command{
-		Use: "testcmd",
-	}
+	// First run with valid metadata
+	t.Run("Run with valid metadata", func(t *testing.T) {
+		cmd := &cobra.Command{
+			Use: "testcmd",
+		}
 
-	metadata := &CommandMetadata{
-		Description: "Test command",
-		Arguments: []struct {
-			Name        string                 `json:"name"`
-			Description string                 `json:"description,omitempty"`
-			Type        string                 `json:"type,omitempty"`
-			Properties  map[string]interface{} `json:"properties,omitempty"`
-		}{
-			{Name: "<arg1>", Description: "Required argument"},
-			{Name: "[arg2]", Description: "Optional argument"},
-		},
-		Options: []struct {
-			Name        string                 `json:"name"`
-			Description string                 `json:"description,omitempty"`
-			Default     string                 `json:"default,omitempty"`
-			Choices     []string               `json:"choices,omitempty"`
-			Env         []string               `json:"env,omitempty"`
-			Hidden      bool                   `json:"hidden,omitempty"`
-			File        bool                   `json:"file,omitempty"`
-			RawData     bool                   `json:"rawdata,omitempty"`
-			Type        string                 `json:"type,omitempty"`
-			Properties  map[string]interface{} `json:"properties,omitempty"`
-		}{
-			{Name: "--flag1", Description: "Test flag", Default: "default_value"},
-		},
-	}
+		metadata := &CommandMetadata{
+			Description: "Test command",
+			Arguments: []struct {
+				Name        string                 `json:"name"`
+				Description string                 `json:"description,omitempty"`
+				Type        string                 `json:"type,omitempty"`
+				Properties  map[string]interface{} `json:"properties,omitempty"`
+			}{
+				{Name: "<arg1>", Description: "Required argument"},
+				{Name: "[arg2]", Description: "Optional argument"},
+			},
+			Options: []struct {
+				Name        string                 `json:"name"`
+				Description string                 `json:"description,omitempty"`
+				Default     string                 `json:"default,omitempty"`
+				Choices     []string               `json:"choices,omitempty"`
+				Env         []string               `json:"env,omitempty"`
+				Hidden      bool                   `json:"hidden,omitempty"`
+				File        bool                   `json:"file,omitempty"`
+				RawData     bool                   `json:"rawdata,omitempty"`
+				Type        string                 `json:"type,omitempty"`
+				Properties  map[string]interface{} `json:"properties,omitempty"`
+			}{
+				{Name: "--flag1", Description: "Test flag", Default: "default_value"},
+			},
+		}
 
-	args, flags, err := ConfigureArgumentsAndFlags(cmd, metadata)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+		args, flags, err := ConfigureArgumentsAndFlags(cmd, metadata, "")
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 
-	if len(args) != 2 || len(flags) != 1 {
-		t.Errorf("Expected 2 arguments and 1 flag, got %d arguments and %d flags", len(args), len(flags))
-	}
+		if len(args) != 2 || len(flags) != 1 {
+			t.Errorf("Expected 2 arguments and 1 flag, got %d arguments and %d flags", len(args), len(flags))
+		}
 
-	// Verify that flags and arguments are correctly set up
-	if _, exists := flags["flag1"]; !exists {
-		t.Errorf("Expected flag 'flag1' to be set in flagContents")
-	}
-	if _, exists := args["arg1"]; !exists {
-		t.Errorf("Expected argument 'arg1' to be set in argContents")
-	}
+		if _, exists := flags["flag1"]; !exists {
+			t.Errorf("Expected flag 'flag1' to be set in flagContents")
+		}
+		if _, exists := args["arg1"]; !exists {
+			t.Errorf("Expected argument 'arg1' to be set in argContents")
+		}
+	})
+
+	t.Run("Run with introspection data", func(t *testing.T) {
+		cmd := &cobra.Command{
+			Use: "testcmd",
+		}
+
+		contract := `Given I have a 'string' named 'love'
+Given I have a 'number' named 'integer'
+Then print the 'love'`
+		data, err := slangroom.Introspect(contract)
+		if err != nil {
+			t.Errorf("Unexpected error from introspection: %v", err)
+		}
+
+		args, flags, err := ConfigureArgumentsAndFlags(cmd, nil, data)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if len(args) != 0 || len(flags) != 2 {
+			t.Errorf("Expected  0 arguments and 2 flag, got %d arguments and %d flags", len(args), len(flags))
+		}
+
+		if _, exists := flags["love"]; !exists {
+			t.Errorf("Expected flag 'love' to be set in flagContents")
+		}
+		if _, exists := flags["integer"]; !exists {
+			t.Errorf("Expected argument 'integer' to be set in argContents")
+		}
+	})
 }
 
 // TestValidateFlags tests the ValidateFlags function.

@@ -210,74 +210,88 @@ func MergeJSON(json1, json2 string) (string, error) {
 }
 
 // ConfigureArgumentsAndFlags configures the command's arguments and flags based on provided metadata,
-func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata) (map[string]interface{}, map[string]FlagData, error) {
+func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadata, introspectionData string) (map[string]interface{}, map[string]FlagData, error) {
 	argContents := make(map[string]interface{})
 	flagContents := make(map[string]FlagData)
 
 	requiredArgs := 0
 	// Add arguments from metadata in the order specified
-	for _, arg := range metadata.Arguments {
-		argContents[NormalizeArgumentName(arg.Name)] = ""
-		if strings.HasPrefix(arg.Name, "<") && strings.HasSuffix(arg.Name, ">") {
-			requiredArgs++
-		} else {
-			fileCmd.Args = cobra.MaximumNArgs(len(metadata.Arguments))
+	if metadata != nil {
+		for _, arg := range metadata.Arguments {
+			argContents[NormalizeArgumentName(arg.Name)] = ""
+			if strings.HasPrefix(arg.Name, "<") && strings.HasSuffix(arg.Name, ">") {
+				requiredArgs++
+			} else {
+				fileCmd.Args = cobra.MaximumNArgs(len(metadata.Arguments))
+			}
+		}
+
+		// Construct the fileCmd.Use string with all arguments
+		fileCmd.Use += " " + strings.Join(GetArgumentNames(metadata.Arguments), " ")
+		// Set the minimum number of required arguments
+		fileCmd.Args = cobra.MinimumNArgs(requiredArgs)
+
+		// Configure flags
+		for _, opt := range metadata.Options {
+			names := strings.Split(opt.Name, ", ")
+			var flag, shorthand, helpText string
+
+			// Parse through the names to extract flag, shorthand, and help text
+			for _, name := range names {
+				name = strings.TrimSpace(name)
+
+				if strings.HasPrefix(name, "--") {
+					flagParts := strings.Fields(strings.TrimPrefix(name, "--"))
+					flag = flagParts[0]
+					helpText = name
+				} else if strings.HasPrefix(name, "-") {
+					// Extract shorthand by removing "-" prefix
+					shorthand = strings.TrimPrefix(name, "-")
+				}
+			}
+
+			// Prepare the description including choices, if available
+			description := opt.Description
+			if len(opt.Choices) > 0 {
+				description += fmt.Sprintf(" (Choices: %v)", opt.Choices)
+			}
+			if opt.File {
+				description += ` ("-" for read from stdin)`
+			}
+
+			if opt.Default != "" {
+				fileCmd.Flags().StringP(flag, shorthand, opt.Default, description)
+			} else {
+				fileCmd.Flags().StringP(flag, shorthand, "", description)
+			}
+			if opt.Hidden {
+				err := fileCmd.Flags().MarkHidden(flag)
+				if err != nil {
+					return nil, nil, fmt.Errorf("error hiding a flag: %v", err)
+				}
+			}
+
+			flagContents[flag] = FlagData{
+				Choices: opt.Choices,
+				Env:     opt.Env,
+				File:    [2]bool{opt.File, opt.RawData},
+			}
+
+			if helpText != "" && description != "" {
+				fileCmd.Flags().Lookup(flag).Usage = fmt.Sprintf("%s %s", helpText, description)
+			}
 		}
 	}
-
-	// Construct the fileCmd.Use string with all arguments
-	fileCmd.Use += " " + strings.Join(GetArgumentNames(metadata.Arguments), " ")
-	// Set the minimum number of required arguments
-	fileCmd.Args = cobra.MinimumNArgs(requiredArgs)
-
-	// Configure flags
-	for _, opt := range metadata.Options {
-		names := strings.Split(opt.Name, ", ")
-		var flag, shorthand, helpText string
-
-		// Parse through the names to extract flag, shorthand, and help text
-		for _, name := range names {
-			name = strings.TrimSpace(name)
-
-			if strings.HasPrefix(name, "--") {
-				flagParts := strings.Fields(strings.TrimPrefix(name, "--"))
-				flag = flagParts[0]
-				helpText = name
-			} else if strings.HasPrefix(name, "-") {
-				// Extract shorthand by removing "-" prefix
-				shorthand = strings.TrimPrefix(name, "-")
-			}
+	if introspectionData != "" {
+		var introspection Introspection
+		if err := json.Unmarshal([]byte(introspectionData), &introspection); err != nil {
+			return argContents, flagContents, fmt.Errorf("failed to parse introspection data: %v", err)
 		}
 
-		// Prepare the description including choices, if available
-		description := opt.Description
-		if len(opt.Choices) > 0 {
-			description += fmt.Sprintf(" (Choices: %v)", opt.Choices)
-		}
-		if opt.File {
-			description += ` ("-" for read from stdin)`
-		}
-
-		if opt.Default != "" {
-			fileCmd.Flags().StringP(flag, shorthand, opt.Default, description)
-		} else {
-			fileCmd.Flags().StringP(flag, shorthand, "", description)
-		}
-		if opt.Hidden {
-			err := fileCmd.Flags().MarkHidden(flag)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error hiding a flag: %v", err)
-			}
-		}
-
-		flagContents[flag] = FlagData{
-			Choices: opt.Choices,
-			Env:     opt.Env,
-			File:    [2]bool{opt.File, opt.RawData},
-		}
-
-		if helpText != "" && description != "" {
-			fileCmd.Flags().Lookup(flag).Usage = fmt.Sprintf("%s %s", helpText, description)
+		// Add fields from introspection data
+		for _, info := range introspection {
+			fileCmd.Flags().StringP(info.Name, "", "", "flag addeded from introspection")
+			flagContents[info.Name] = FlagData{}
 		}
 	}
 
@@ -567,7 +581,7 @@ func IsDir(path string) (bool, error) {
 }
 
 // Utils function that removes from introspection JSON the data generated by slangroom
-func CleanIntrospection(inputStr, jsonStr string) (string, error) {
+func CleanIntrospection(inputStr, jsonStr string) string {
 	// Find all names between single quotes after "output into" or "output as"
 	re := regexp.MustCompile(`(?:output into|output as) '([^']+)'`)
 	matches := re.FindAllStringSubmatch(inputStr, -1)
@@ -581,15 +595,15 @@ func CleanIntrospection(inputStr, jsonStr string) (string, error) {
 	}
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
-		return "", fmt.Errorf("failed to parse JSON: %v", err)
+		return ""
 	}
 	removeKeys(data, names)
 	cleanedJSON, err := json.Marshal(data)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal JSON: %v", err)
+		return ""
 	}
 
-	return string(cleanedJSON), nil
+	return string(cleanedJSON)
 }
 
 // removeKeys removes keys from the map if they match the provided names.

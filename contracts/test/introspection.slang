@@ -1,2 +1,3 @@
 Given I have a 'string' named 'love'
-Then print the 'love'
+Given I have a 'number' named 'integer'
+Then print the data
