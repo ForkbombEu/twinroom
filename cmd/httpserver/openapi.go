@@ -48,7 +48,11 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 			},
 		},
 	})
-	err := fouter.CreateFileRouter(input.Path, input.EmbeddedFolder, input.EmbeddedPath, func(file fouter.SlangFile) {
+	folderPath := input.EmbeddedPath
+	if input.EmbeddedSubDir != "" {
+		folderPath = input.EmbeddedPath + "/" + input.EmbeddedSubDir
+	}
+	err := fouter.CreateFileRouter(input.Path, input.EmbeddedFolder, folderPath, func(file fouter.SlangFile) {
 		var filename string
 		if input.FileName == "" {
 			filename = strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))
@@ -103,7 +107,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 						Description: "Slangroom execution error",
 					},
 				},
-				Description: strings.ReplaceAll(file.Content, "\n", "\n\n"),
+				Description: file.Content,
 			})
 			if err != nil {
 				return
@@ -168,7 +172,7 @@ func GenerateOpenAPIRouter(ctx context.Context, input HTTPInput) (*mux.Router, e
 						Description: "Slangroom execution error",
 					},
 				},
-				Description: strings.ReplaceAll(file.Content, "\n", "\n\n"),
+				Description: file.Content,
 			})
 			if err != nil {
 				return
