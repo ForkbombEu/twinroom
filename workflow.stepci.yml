@@ -60,7 +60,7 @@ tests:
           check:
             status: 500
             body:
-              - match: ".*missing properties: 'love'.*"
+              - match: ".*missing properties: '(integer|love)', '(integer|love).*"
 
 
       - name: introspection invalid data
@@ -74,7 +74,7 @@ tests:
           check:
             status: 500
             body:
-              - match: ".*missing properties: 'love'.*"
+              - match: ".*missing properties: '(integer|love)', '(integer|love)'.*"
 
       - name: introspection valid data
         http:
@@ -84,10 +84,12 @@ tests:
             Content-Type: application/json
           json:
             love: 'you'
+            integer: 4
           check:
             status: 200
             json:
               love: you
+              integer: 4
 
   metadata-json-schema:
     steps:
