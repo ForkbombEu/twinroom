@@ -19,8 +19,6 @@ import (
 var contracts embed.FS
 var daemon bool
 
-var extension = ".slang"
-
 // runCmd is the base command when called without any subcommands.
 func Execute(embeddedFiles embed.FS) {
 	contracts = embeddedFiles
@@ -52,7 +50,9 @@ var listCmd = &cobra.Command{
 			// If no folder argument is provided, list embedded files
 			fmt.Println("Listing embedded slangroom files:")
 			err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
-				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
+				relativePath := strings.TrimPrefix(filepath.Join(file.Dir, file.FileName), "contracts/")
+				relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
+				fmt.Printf("Found file: %s\n", relativePath)
 			})
 			if err != nil {
 				log.Println("Error:", err)
@@ -62,7 +62,9 @@ var listCmd = &cobra.Command{
 			folder := args[0]
 			fmt.Printf("Listing contracts in folder: %s\n", folder)
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
-				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, extension), file.Path)
+				relativeFilePath := filepath.Join(file.Dir, file.FileName)
+				relativeFilePath = strings.TrimSuffix(relativeFilePath, filepath.Ext(relativeFilePath))
+				fmt.Printf("Found file: %s\n", relativeFilePath)
 			})
 			if err != nil {
 				log.Println("Error:", err)
@@ -226,7 +228,7 @@ var runCmd = &cobra.Command{
 		err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
 			relativeFilePath := filepath.Join(file.Dir, file.FileName)
 			relativeFilePath = strings.TrimSuffix(relativeFilePath, filepath.Ext(relativeFilePath))
-			filename := strings.TrimSuffix(file.FileName, extension)
+			filename := strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))
 
 			if relativeFilePath == filePath {
 				found = true
@@ -274,7 +276,7 @@ var runCmd = &cobra.Command{
 }
 
 func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.CommandMetadata, argContents map[string]interface{}, isMetadata bool, input *slangroom.SlangroomInput) {
-	filename := strings.TrimSuffix(file.FileName, extension)
+	filename := strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName))
 	err := utils.LoadAdditionalData(file.Dir, filename, input)
 	if err != nil {
 		log.Printf("Failed to load data from JSON file: %v\n", err)

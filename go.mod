@@ -5,7 +5,7 @@ go 1.23
 require (
 	github.com/ForkbombEu/fouter v0.0.0-20241025081836-854f54912b1c
 	github.com/davidebianchi/gswagger v0.10.0
-	github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241217152329-ff77cc681922
+	github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241219141704-b961cab9047b
 	github.com/getkin/kin-openapi v0.128.0
 	github.com/gorilla/mux v1.8.1
 	github.com/invopop/jsonschema v0.12.0
