@@ -50,7 +50,9 @@ var listCmd = &cobra.Command{
 			// If no folder argument is provided, list embedded files
 			fmt.Println("Listing embedded slangroom files:")
 			err := fouter.CreateFileRouter("", &contracts, "contracts", func(file fouter.SlangFile) {
-				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName)), file.Path)
+				relativePath := strings.TrimPrefix(filepath.Join(file.Dir, file.FileName), "contracts/")
+				relativePath = strings.TrimSuffix(relativePath, filepath.Ext(relativePath))
+				fmt.Printf("Found file: %s\n", relativePath)
 			})
 			if err != nil {
 				log.Println("Error:", err)
@@ -60,7 +62,9 @@ var listCmd = &cobra.Command{
 			folder := args[0]
 			fmt.Printf("Listing contracts in folder: %s\n", folder)
 			err := fouter.CreateFileRouter(folder, nil, "", func(file fouter.SlangFile) {
-				fmt.Printf("Found file: %s (Path: %s)\n", strings.TrimSuffix(file.FileName, filepath.Ext(file.FileName)), file.Path)
+				relativeFilePath := filepath.Join(file.Dir, file.FileName)
+				relativeFilePath = strings.TrimSuffix(relativeFilePath, filepath.Ext(relativeFilePath))
+				fmt.Printf("Found file: %s\n", relativeFilePath)
 			})
 			if err != nil {
 				log.Println("Error:", err)

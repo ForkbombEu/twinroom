@@ -30,10 +30,10 @@ func TestListCommand(t *testing.T) {
 		if !contains(output, "Listing embedded slangroom files:") {
 			t.Errorf("Expected output to contain 'Listing embedded slangroom files:', got %v", output)
 		}
-		if !contains(output, "Found file: hello") {
+		if !contains(output, "Found file: test/hello") {
 			t.Errorf("Expected output to contain 'Found file: hello', got %v", output)
 		}
-		if !contains(output, "Found file: test") {
+		if !contains(output, "Found file: test/test") {
 			t.Errorf("Expected output to contain 'Found file: test', got %v", output)
 		}
 	})
