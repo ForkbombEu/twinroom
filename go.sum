@@ -13,6 +13,8 @@ github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241129112151-e8864edd2fb4 h1
 github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241129112151-e8864edd2fb4/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
 github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241217152329-ff77cc681922 h1:darm4cfsmYK0TPxuSNItzZLmB/+JQ+VUZ535H+nJ/Bc=
 github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241217152329-ff77cc681922/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
+github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241219141704-b961cab9047b h1:1hvlJ8lPeEgBtUJJ+1bZ5jpkcJD1qv/JCNkPi78J/e0=
+github.com/dyne/slangroom-exec/bindings/go v0.0.0-20241219141704-b961cab9047b/go.mod h1:OXlCZWI8XQ8suaNik1N6xmjoH0P6fJ9MH9AK1hxw/sw=
 github.com/getkin/kin-openapi v0.128.0 h1:jqq3D9vC9pPq1dGcOCv7yOp1DaEe7c/T1vzcLbITSp4=
 github.com/getkin/kin-openapi v0.128.0/go.mod h1:OZrfXzUfGrNbsKj+xmFBx6E5c6yH3At/tAKSc2UszXM=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
