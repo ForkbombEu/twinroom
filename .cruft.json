@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/dyne/starters",
-  "commit": "33e82473975091461877bd0b971eb1ececa8b425",
+  "commit": "5d10ee7f4b84bf51d117fd2e123abe4ec316bf9c",
   "checkout": null,
   "context": {
     "cookiecutter": {
@@ -11,7 +11,8 @@
       "email": "puria@dyne.org",
       "repo": "github.com/forkbombeu/twinroom",
       "go_version": "1.23",
-      "_template": "https://github.com/dyne/starters"
+      "_template": "https://github.com/dyne/starters",
+      "_commit": "5d10ee7f4b84bf51d117fd2e123abe4ec316bf9c"
     }
   },
   "directory": "go"
