@@ -54,20 +54,20 @@ If you want to list only embedded files in the contracts folder, simply run:
 To execute a specific slangroom file, use the following command:
 
 ```bash
-out/bin/./twinroom <folder> <file>
+./out/bin/twinroom <folder> <file>
 ```
 
 If the file is embedded in the `contracts` folder , you can also run it directly by providing just the filename:
 
 
 ```bash
-out/bin/./twinroom  <file>
+./out/bin/twinroom  <file>
 ```
 
 Or if it is in a subdir of `contracts`:
 
 ```bash
-out/bin/./twinroom  <subdir> <file>
+./out/bin/twinroom  <subdir> <file>
 ```
 
 ### Daemon Mode
