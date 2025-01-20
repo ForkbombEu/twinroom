@@ -70,7 +70,11 @@ func main() {
 		fmt.Fprint(os.Stderr, "Warning: extra_dir.json not found, use default contracts folder.\n")
 		return
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			fmt.Printf("Error closing file: %v\n", err)
+		}
+	}()
 
 	// Parse the JSON file
 	var config ContractsConfig
