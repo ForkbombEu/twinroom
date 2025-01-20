@@ -42,7 +42,7 @@ func replaceContracts(srcDir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to read source file: %w", err)
 		}
-		if err := os.WriteFile(destFile, input, os.ModePerm); err != nil {
+		if err := os.WriteFile(destFile, input, 0600); err != nil {
 			return fmt.Errorf("failed to write file to contracts: %w", err)
 		}
 	}
