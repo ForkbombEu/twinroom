@@ -22,13 +22,13 @@ git clone https://github.com/ForkbombEu/Twinroom
 To embed files in your project, place them inside the `contracts` folder. Only contracts with the `.slang` extension will be considered for embedding.
 
 For example:
-
+```
 contracts/
 ├── example1.slang  
 ├── example2.slang  
 └── subfolder/  
     └── nested.slang  
-
+```
 - Files such as `example1.slang` and `nested.slang` will be embedded.  
 - Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts. 
 
@@ -209,7 +209,7 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
     * ***rawdata (optional)***:  If set to true alongside `file: true`, the contents of the file will be added as raw data, with the flag name serving as the key.
 * **environment**:
     * For example, "environment": `{ "VAR1": "value1", "VAR2": "value2" }` will set the environment variables `VAR1=value1` and`VAR2=value2` during command execution.
-    
+
 All values provided through arguments and flags are added to the slangroom input data as key-value pairs in the format `"flag_name": "value"`. If a parameter is present in both the CLI input and the corresponding `filename.data.json` file, the CLI input will take precedence, overwriting the value in the JSON file.
 
 
