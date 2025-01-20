@@ -6,6 +6,8 @@ import (
 	"github.com/forkbombeu/twinroom/cmd"
 )
 
+//go:generate go run scripts/replaceContracts.go
+
 //go:embed contracts
 var contracts embed.FS
 

@@ -35,9 +35,18 @@ $(SLANGROOM_EXEC):
 
 
 ## Build:
-build:  $(SLANGROOM_EXEC) ## Build your project and put the output binary in out/bin/
+
+# Replace contracts with custom folder content before building
+generate:
+	GO111MODULE=on CONTRACTS_DIR=$(dir) $(GOCMD) generate
+
+# Build your project and put the output binary in out/bin/
+build: generate
 	mkdir -p out/bin
 	GO111MODULE=on $(GOCMD) build -o out/bin/$(BINARY_NAME) .
+	rm -rf contracts
+	mv contracts_backup contracts
+
 
 clean: ## Remove build related file
 	rm -fr ./bin
