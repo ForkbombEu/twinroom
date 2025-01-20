@@ -36,6 +36,7 @@ func Example_listCmd() {
 	// Found file: test/hello
 	// Found file: test/introspection
 	// Found file: test/param
+	// Found file: test/read_from_path
 	// Found file: test/stdin
 	// Found file: test/test
 	// Found file: test/withschema
@@ -188,4 +189,25 @@ func Example_runCmdWithFilePath() {
 
 	// Output:
 	//{"file":"Hello World!"}
+}
+
+func Example_runCmdNeedEnvVariable() {
+	// Prepare the command to run the slang file
+	cmd := exec.Command("go", "run", "main.go", "test", "read_from_path", "-p", "hello.txt")
+	// Capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+
+	// Check for errors
+	if err != nil {
+		log.Println("Command execution failed:", err)
+		return
+	}
+
+	// Output the results
+	fmt.Print(out.String())
+
+	// Output:
+	//{"file_content":"Hello World!\n"}
 }

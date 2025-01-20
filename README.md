@@ -17,6 +17,21 @@ Clone the repository:
 ```bash
 git clone https://github.com/ForkbombEu/Twinroom
 ```
+### Embedding Files
+
+To embed files in your project, place them inside the `contracts` folder. Only contracts with the `.slang` extension will be considered for embedding.
+
+For example:
+```
+contracts/
+├── example1.slang  
+├── example2.slang  
+└── subfolder/  
+    └── nested.slang  
+```
+- Files such as `example1.slang` and `nested.slang` will be embedded.  
+- Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts. 
+
 ### Build the executable:
 You can build the executable using either the go build command or the provided Makefile.
 Using go build:
@@ -112,14 +127,15 @@ hello.extra.json
 
 ### Command Arguments and Flags from `metadata.json`
 
-In addition to the above parameters, Twinroom allows you to define custom arguments and flags for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
+In addition to the above parameters, Twinroom allows you to define custom arguments, flags, and environment variables for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
 
  * **Arguments**: Custom positional arguments for the command.
  * **Options**: Custom flags that can be passed to the command.
+ * **Environment**: Key-value pairs of environment variables that are set dynamically when the command is executed.
 
  #### Structure of `metadata.json`
 
-The metadata file is automatically read by Twinroom to generate appropriate arguments and flags when executing embedded contract files. A typical metadata.json structure might look like this:
+The metadata file is automatically read by Twinroom to generate appropriate arguments, flags, and environment variable settings when executing embedded contract files. A typical metadata.json structure might look like this:
 
 ```json
 {
@@ -169,7 +185,11 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
             "file": true,
             "rawdata": true
         },
-    ]
+    ],
+        "environment": {
+        "VAR1": "value1",
+        "VAR2": "value2"
+    }
 }
 ```
 #### Field Descriptions:
@@ -187,6 +207,8 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
     * ***choices (optional)***: An array of allowed values for the flag, ensuring users provide a valid input.
     * ***file (optional)***:  If set to `true`, the flag requires a JSON file path. The file's contents will be added to the slangroom input data.
     * ***rawdata (optional)***:  If set to true alongside `file: true`, the contents of the file will be added as raw data, with the flag name serving as the key.
+* **environment**:
+    * For example, "environment": `{ "VAR1": "value1", "VAR2": "value2" }` will set the environment variables `VAR1=value1` and`VAR2=value2` during command execution.
 
 All values provided through arguments and flags are added to the slangroom input data as key-value pairs in the format `"flag_name": "value"`. If a parameter is present in both the CLI input and the corresponding `filename.data.json` file, the CLI input will take precedence, overwriting the value in the JSON file.
 

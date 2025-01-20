@@ -154,7 +154,9 @@ func addEmbeddedFileCommands() {
 				log.Printf("Failed to set arguments or flags: %v\n", err)
 				os.Exit(1)
 			}
-			isMetadata = true
+			if introspectionData != "" && introspectionData != "{}" {
+				isMetadata = true
+			}
 		}
 
 		fileCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
@@ -283,6 +285,12 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 		os.Exit(1)
 	}
 	if isMetadata {
+		for key, value := range metadata.Environment {
+			if err := os.Setenv(key, value); err != nil {
+				log.Println("Failed to set environment variable:", key)
+				os.Exit(1)
+			}
+		}
 		for i, arg := range args {
 			if i < len(metadata.Arguments) {
 				argContents[utils.NormalizeArgumentName(metadata.Arguments[i].Name)] = arg

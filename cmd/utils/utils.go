@@ -40,6 +40,7 @@ type CommandMetadata struct {
 		Type        string                 `json:"type,omitempty"`
 		Properties  map[string]interface{} `json:"properties,omitempty"` // For complex object types
 	} `json:"options"`
+	Environment map[string]string `json:"environment,omitempty"` // Map of environment variable names to values
 }
 
 // FlagData contains the necessary data for a given flag

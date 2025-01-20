@@ -1,0 +1,12 @@
+{
+    "description": "read a file content from a path",
+    "options": [
+        {
+            "name": "-p, --file_path <path>",
+            "description": "file to read"
+        }
+    ],
+    "environment": {
+        "FILES_DIR": "contracts/test"
+    }
+}
