@@ -40,7 +40,6 @@ func Example_listCmd() {
 	// Found file: test/stdin
 	// Found file: test/test
 	// Found file: test/withschema
-
 }
 
 // Example of using the run command to execute a specific slangroom file.
