@@ -88,7 +88,7 @@ func Example_runCmdWithExtraData() {
 
 func Example_runCmdWithParam() {
 	// Prepare the command to run the slang file
-	cmd := exec.Command("go", "run", "main.go", "test", "param", "username", "-n", "testname", "-D", "small")
+	cmd := exec.Command("go", "run", "main.go", "test", "param", "username", "-n", "testname", "-d", "small")
 
 	// Capture the output
 	var out bytes.Buffer

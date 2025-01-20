@@ -49,6 +49,10 @@ type FlagData struct {
 	Env     []string
 	File    [2]bool
 }
+
+var reservedFlag = []string{"help", "daemon"}
+var reservedShorthand = "h"
+
 type codec struct {
 	Encoding string `json:"encoding"`
 	Missing  bool   `json:"missing"`
@@ -248,6 +252,14 @@ func ConfigureArgumentsAndFlags(fileCmd *cobra.Command, metadata *CommandMetadat
 				} else if strings.HasPrefix(name, "-") {
 					// Extract shorthand by removing "-" prefix
 					shorthand = strings.TrimPrefix(name, "-")
+				}
+				for _, v := range reservedFlag {
+					if v == flag {
+						return argContents, flagContents, fmt.Errorf("cannot use %s as flag name", name)
+					}
+				}
+				if shorthand == reservedShorthand {
+					return argContents, flagContents, fmt.Errorf("cannot use %s as flag shorthand", shorthand)
 				}
 			}
 

@@ -35,8 +35,8 @@ func Execute(embeddedFiles embed.FS) {
 func init() {
 	runCmd.AddCommand(listCmd)
 	// Add a flag for the daemon mode to the 'list' command
-	listCmd.Flags().BoolVarP(&daemon, "daemon", "d", false, "Start HTTP server to list slangroom files")
-	runCmd.PersistentFlags().BoolVarP(&daemon, "daemon", "d", false, "Start HTTP server to execute slangroom file")
+	listCmd.Flags().BoolVarP(&daemon, "daemon", "", false, "Start HTTP server to list slangroom files")
+	runCmd.PersistentFlags().BoolVarP(&daemon, "daemon", "", false, "Start HTTP server to execute slangroom file")
 }
 
 // listCmd is a command that lists all slangroom files in the folder or list embedded files if no folder is specified.

@@ -30,7 +30,25 @@ contracts/
     └── nested.slang  
 ```
 - Files such as `example1.slang` and `nested.slang` will be embedded.  
-- Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts. 
+- Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts.
+
+#### Customizing Embedded Folder
+If you want to embed files from a different folder, you can now specify a custom directory when running the `make build` command.
+
+To specify a custom folder for embedding files:
+```bash
+make build dir=path/to/contracts_folder
+```
+Where `path/to/contracts_folder` is the folder containing the `.slang` files you wish to use in place of the default `contracts` folder.
+
+### How It Works
+
+- **Before building**: The `make build` command will replace the contents of the `contracts` folder with the contents of the folder specified in the `dir` argument.
+  
+- **Building**: After the contents are replaced, the project will be built as usual.
+
+- **After building**: The `contracts` folder is restored to its original state from a backup folder (`contracts_backup`).
+
 
 ### Build the executable:
 You can build the executable using either the go build command or the provided Makefile.
@@ -87,15 +105,15 @@ Or if it is in a subdir of `contracts`:
 
 ### Daemon Mode
 
-Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `-d` or `--daemon` flag:
+Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `--daemon` flag:
 
 ```bash
-./out/bin/twinroom -d <folder> <file>
+./out/bin/twinroom --daemon <folder> <file>
 ```
-If a folder is provided with the `-d` flag and the list command, twinroom will list the available slangroom files via HTTP.
+If a folder is provided with the `--daemon` flag and the list command, twinroom will list the available slangroom files via HTTP.
 
 ```bash
-./out/bin/twinroom list  -d <folder>
+./out/bin/twinroom list  --daemon <folder>
 ```
 ### Adding Additional Data to Slangroom Contrats
 
@@ -171,7 +189,7 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
             ]
         },
         {
-            "name": "-D, --drink <size>",
+            "name": "-d, --drink <size>",
             "description": "drink size",
             "choices": [
                 "small",
@@ -230,13 +248,13 @@ Run a specific contract:
 Run a contract with arguments and flag:
 
 ```bash
-out/bin/twinroom test param username -n myname -D small -t 100
+out/bin/twinroom test param username -n myname -d small -t 100
 ```
 
 Start the HTTP server to expose contract:
 
 ```bash
-./out/bin/twinroom -d examples hello
+./out/bin/twinroom --daemon examples hello
 ```
 
 

@@ -32,7 +32,7 @@
             ]
         },
         {
-            "name": "-D, --drink <size>",
+            "name": "-d, --drink <size>",
             "description": "drink size",
             "choices": [
                 "small",
