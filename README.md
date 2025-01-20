@@ -17,6 +17,17 @@ Clone the repository:
 ```bash
 git clone https://github.com/ForkbombEu/Twinroom
 ```
+
+### Build the executable:
+You can build the executable using the provided Makefile.
+
+```bash
+make build BINARY_NAME=<custom_name>
+```
+If you want to specify a custom binary name, you can do so by passing the BINARY_NAME variable.
+
+Replace <custom_name> with your desired binary name.
+
 ### Embedding Files
 
 To embed files in your project, place them inside the `contracts` folder. Only contracts with the `.slang` extension will be considered for embedding.
@@ -30,26 +41,33 @@ contracts/
     └── nested.slang  
 ```
 - Files such as `example1.slang` and `nested.slang` will be embedded.  
-- Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts. 
+- Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts.
 
-### Build the executable:
-You can build the executable using either the go build command or the provided Makefile.
-Using go build:
+#### Customizing Embedded Folder
+If you want to embed files from one or more  different folders, you can specify custom directories using the JSON configuration file (`extra_dir.json`) when running the `make build` command.
 
-To build the binary with a custom name using go build, run:
+To specify custom folders for embedding files:
+1. Update `extra_dir.json` in the root of your project, with the paths to the directories that hold the contracts files. Example:
 
-```bash
-go build -o <custom_name> .
+```json
+{
+  "paths": [
+    "path/to/contracts_folder_1",
+    "path/to/contracts_folder_2"
+  ]
+}
 ```
 
-Using make build:
+2. Run the `make build` command. The directories specified in the `extra_dir.json` file will be used to replace the contents of the default `contracts` folder.
 
-```bash
-make build BINARY_NAME=<custom_name>
-```
-If you want to specify a custom binary name, you can do so by passing the BINARY_NAME variable.
+### How It Works
 
-Replace <custom_name> with your desired binary name.
+- **Before building**: The `make build` command reads the `extra_dir.json` file to retrieve the paths to the directories containing the `.slang` files. The contents of the `contracts` folder will be replaced with the contents of the specified directories.
+  
+- **Building**: After the contents are replaced, the project will be built as usual. If no `extra_dir.json` file is found or if it does not specify any paths, the default `contracts` folder is used.
+
+- **After building**: Once the build is complete, the `contracts` folder is restored to its original state.
+
 ## Usage
 
 ### List Command
@@ -87,15 +105,15 @@ Or if it is in a subdir of `contracts`:
 
 ### Daemon Mode
 
-Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `-d` or `--daemon` flag:
+Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `--daemon` flag:
 
 ```bash
-./out/bin/twinroom -d <folder> <file>
+./out/bin/twinroom --daemon <folder> <file>
 ```
-If a folder is provided with the `-d` flag and the list command, twinroom will list the available slangroom files via HTTP.
+If a folder is provided with the `--daemon` flag and the list command, twinroom will list the available slangroom files via HTTP.
 
 ```bash
-./out/bin/twinroom list  -d <folder>
+./out/bin/twinroom list  --daemon <folder>
 ```
 ### Adding Additional Data to Slangroom Contrats
 
@@ -171,7 +189,7 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
             ]
         },
         {
-            "name": "-D, --drink <size>",
+            "name": "-d, --drink <size>",
             "description": "drink size",
             "choices": [
                 "small",
@@ -230,13 +248,13 @@ Run a specific contract:
 Run a contract with arguments and flag:
 
 ```bash
-out/bin/twinroom test param username -n myname -D small -t 100
+out/bin/twinroom test param username -n myname -d small -t 100
 ```
 
 Start the HTTP server to expose contract:
 
 ```bash
-./out/bin/twinroom -d examples hello
+./out/bin/twinroom --daemon examples hello
 ```
 
 

@@ -36,7 +36,7 @@ jobs:
         run: go test -v ./...
       - name: Run stepci tests
         run: |
-          out/bin/twinroom -d &
+          out/bin/twinroom --daemon &
           sleep 5
           npx stepci run workflow.stepci.yml
   release:
