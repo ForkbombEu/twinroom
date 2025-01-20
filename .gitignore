@@ -25,6 +25,7 @@
 !LICENSE
 
 !Makefile
+!extra_dir.json
 
 !contracts/**/*
 !vendor/modules.txt

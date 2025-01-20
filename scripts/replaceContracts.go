@@ -1,18 +1,29 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 )
 
+// ContractsConfig represents the structure of the JSON file that contains the paths.
+type ContractsConfig struct {
+	Paths []string `json:"paths"`
+}
+
 // ReplaceContracts temporarily replaces the contents of the contracts folder
-// with the contents from a specified directory (e.g., for testing or custom build).
-func replaceContracts(srcDir string) error {
+// with the contents from the specified directories.
+func replaceContracts(config ContractsConfig) error {
 	// Path to the original contracts folder
 	contractsDir := "contracts"
 	// Backup the original contracts folder
 	backupDir := "contracts_backup"
+
+	// Check if there are any paths specified in the config
+	if len(config.Paths) == 0 {
+		return nil
+	}
 
 	// Backup original contracts directory
 	if err := os.RemoveAll(backupDir); err != nil {
@@ -23,27 +34,28 @@ func replaceContracts(srcDir string) error {
 	}
 
 	// Copy the new contents into the contracts directory
-	fmt.Println(srcDir)
-	files, err := os.ReadDir(srcDir)
-	if err != nil {
-		return fmt.Errorf("failed to read source directory: %w", err)
-	}
-
-	if err := os.MkdirAll(contractsDir, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to create contracts folder: %w", err)
-	}
-
-	for _, file := range files {
-		srcFile := filepath.Join(srcDir, file.Name())
-		destFile := filepath.Join(contractsDir, file.Name())
-
-		// Copy file content
-		input, err := os.ReadFile(srcFile)
+	for _, srcDir := range config.Paths {
+		files, err := os.ReadDir(srcDir)
 		if err != nil {
-			return fmt.Errorf("failed to read source file: %w", err)
+			return fmt.Errorf("failed to read source directory %s: %w", srcDir, err)
 		}
-		if err := os.WriteFile(destFile, input, 0600); err != nil {
-			return fmt.Errorf("failed to write file to contracts: %w", err)
+
+		if err := os.MkdirAll(contractsDir, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to create contracts folder: %w", err)
+		}
+
+		// Copy files from each source directory into the contracts directory
+		for _, file := range files {
+			srcFile := filepath.Join(srcDir, file.Name())
+			destFile := filepath.Join(contractsDir, file.Name())
+
+			input, err := os.ReadFile(srcFile)
+			if err != nil {
+				return fmt.Errorf("failed to read source file %s: %w", srcFile, err)
+			}
+			if err := os.WriteFile(destFile, input, 0600); err != nil {
+				return fmt.Errorf("failed to write file to contracts: %w", err)
+			}
 		}
 	}
 
@@ -51,11 +63,25 @@ func replaceContracts(srcDir string) error {
 }
 
 func main() {
-	srcDir := os.Getenv("CONTRACTS_DIR")
-	if srcDir == "" {
+	// Read the config file with paths
+	configFile := "extra_dir.json" // The JSON file with paths
+	file, err := os.Open(configFile)
+	if err != nil {
+		fmt.Fprint(os.Stderr, "Warning: extra_dir.json not found, use default contracts folder.\n")
 		return
 	}
-	if err := replaceContracts(srcDir); err != nil {
+	defer file.Close()
+
+	// Parse the JSON file
+	var config ContractsConfig
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&config); err != nil {
+		fmt.Fprint(os.Stderr, "Warning: extra_dir.json format not correct, use default contract folder.\n")
+		return
+	}
+
+	// Replace contracts with the files from the listed directories
+	if err := replaceContracts(config); err != nil {
 		fmt.Printf("Error replacing contracts: %v\n", err)
 		os.Exit(1)
 	}

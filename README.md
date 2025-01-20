@@ -17,6 +17,17 @@ Clone the repository:
 ```bash
 git clone https://github.com/ForkbombEu/Twinroom
 ```
+
+### Build the executable:
+You can build the executable using the provided Makefile.
+
+```bash
+make build BINARY_NAME=<custom_name>
+```
+If you want to specify a custom binary name, you can do so by passing the BINARY_NAME variable.
+
+Replace <custom_name> with your desired binary name.
+
 ### Embedding Files
 
 To embed files in your project, place them inside the `contracts` folder. Only contracts with the `.slang` extension will be considered for embedding.
@@ -33,41 +44,30 @@ contracts/
 - Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts.
 
 #### Customizing Embedded Folder
-If you want to embed files from a different folder, you can now specify a custom directory when running the `make build` command.
+If you want to embed files from one or more  different folders, you can specify custom directories using the JSON configuration file (`extra_dir.json`) when running the `make build` command.
 
-To specify a custom folder for embedding files:
-```bash
-make build dir=path/to/contracts_folder
+To specify custom folders for embedding files:
+1. Update `extra_dir.json` in the root of your project, with the paths to the directories that hold the contracts files. Example:
+
+```json
+{
+  "paths": [
+    "path/to/contracts_folder_1",
+    "path/to/contracts_folder_2"
+  ]
+}
 ```
-Where `path/to/contracts_folder` is the folder containing the `.slang` files you wish to use in place of the default `contracts` folder.
+
+2. Run the `make build` command. The directories specified in the `extra_dir.json` file will be used to replace the contents of the default `contracts` folder.
 
 ### How It Works
 
-- **Before building**: The `make build` command will replace the contents of the `contracts` folder with the contents of the folder specified in the `dir` argument.
+- **Before building**: The `make build` command reads the `extra_dir.json` file to retrieve the paths to the directories containing the `.slang` files. The contents of the `contracts` folder will be replaced with the contents of the specified directories.
   
-- **Building**: After the contents are replaced, the project will be built as usual.
+- **Building**: After the contents are replaced, the project will be built as usual. If no `extra_dir.json` file is found or if it does not specify any paths, the default `contracts` folder is used.
 
-- **After building**: The `contracts` folder is restored to its original state from a backup folder (`contracts_backup`).
+- **After building**: Once the build is complete, the `contracts` folder is restored to its original state.
 
-
-### Build the executable:
-You can build the executable using either the go build command or the provided Makefile.
-Using go build:
-
-To build the binary with a custom name using go build, run:
-
-```bash
-go build -o <custom_name> .
-```
-
-Using make build:
-
-```bash
-make build BINARY_NAME=<custom_name>
-```
-If you want to specify a custom binary name, you can do so by passing the BINARY_NAME variable.
-
-Replace <custom_name> with your desired binary name.
 ## Usage
 
 ### List Command

@@ -38,18 +38,19 @@ $(SLANGROOM_EXEC):
 
 # Replace contracts with custom folder content before building
 generate:
-	GO111MODULE=on CONTRACTS_DIR=$(dir) $(GOCMD) generate
+	GO111MODULE=on $(GOCMD) generate
 
 # Build your project and put the output binary in out/bin/
-build: generate
+build: $(SLANGROOM_EXEC) generate
 	mkdir -p out/bin
 	GO111MODULE=on $(GOCMD) build -o out/bin/$(BINARY_NAME) .
-ifeq ($(origin dir), undefined)
-	@echo "No custom directory specified. Using default contracts directory."
-else
-	rm -rf contracts
-	mv contracts_backup contracts
-endif
+	@if [ -d "contracts_backup" ]; then \
+		rm -rf contracts; \
+		mv contracts_backup contracts; \
+	else \
+		echo "No custom directory specified. Using default contracts directory."; \
+	fi
+
 
 
 
