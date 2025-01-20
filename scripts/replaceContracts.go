@@ -53,7 +53,7 @@ func replaceContracts(srcDir string) error {
 func main() {
 	srcDir := os.Getenv("CONTRACTS_DIR")
 	if srcDir == "" {
-		srcDir = "contracts" // default
+		return
 	}
 	if err := replaceContracts(srcDir); err != nil {
 		fmt.Printf("Error replacing contracts: %v\n", err)

@@ -44,8 +44,13 @@ generate:
 build: generate
 	mkdir -p out/bin
 	GO111MODULE=on $(GOCMD) build -o out/bin/$(BINARY_NAME) .
+ifeq ($(origin dir), undefined)
+	@echo "No custom directory specified. Using default contracts directory."
+else
 	rm -rf contracts
 	mv contracts_backup contracts
+endif
+
 
 
 clean: ## Remove build related file
