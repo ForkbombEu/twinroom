@@ -1,0 +1,3 @@
+[tools]
+"aqua:dyne/slangroom-exec" = "latest"
+go = "1.23.4"

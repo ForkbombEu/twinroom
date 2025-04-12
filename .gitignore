@@ -31,3 +31,6 @@
 !vendor/modules.txt
 # ...even if they are in subdirectories
 !*/
+
+# mise stuff
+!mise.toml
