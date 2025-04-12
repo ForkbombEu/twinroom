@@ -27,9 +27,7 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: 1.23.1
+      - uses: jdx/mise-action@v2
       - name: Install slangroom-exec
         run: make build
       - name: Run go tests
