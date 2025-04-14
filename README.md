@@ -25,20 +25,19 @@ the embedded ones will be kept and dynamic one will not be loaded.
 
 ***
 
-<div id="tocs">
+<div id="toc">
 
 ### 🚩 Table of Contents
 
 - [🎮 Quick start](#-quick-start)
 - [💾 Build](#-build)
-- [🐣 Embedded contracts as executable commands](#-embed-custom-contracts-as-executable-commands)
-- [ℹ️ Metadata file](#-metadata-file)
+- [🐣 Embedded contracts as executable commands](#-embedded-contracts-as-executable-commands)
+- [🔮 Metadata file](#-metadata-file)
 - [🗃️ Additional data to Slangroom contrats](#️-additional-data-to-slangroom-contrats)
-- [😈 Daeomon mode](#-daeomon-mode)
+- [😈 Daemon mode](#-daemon-mode)
 - [📝 Site docs](#-site-docs)
 - [🐛 Troubleshooting \& debugging](#-troubleshooting--debugging)
 - [😍 Acknowledgements](#-acknowledgements)
-- [🌐 Links](#-links)
 - [👤 Contributing](#-contributing)
 - [💼 License](#-license)
 </div>
@@ -118,6 +117,9 @@ The files that twinroom will embed are the `.slang` files, *i.e.* the
 contracts, and the JSON file associated with it (keys, data, conf, metadata, ...).
 All the other files will be ignored.
 
+**[🔝 back to top](#toc)**
+
+---
 ## 🐣 Embedded contracts as executable commands
 
 What happen to the contracts that you embed?
@@ -166,7 +168,10 @@ will result in
 
 In this case no input was required to run the `hello` command, but when an input from the user side is required this can be specified in the [metdata file](#-metadata-file).
 
-## ℹ️ Metadata file
+**[🔝 back to top](#toc)**
+
+---
+## 🔮 Metadata file
 
 Twinroom allows you to define custom arguments, flags, and environment variables for each embedded slangroom file using a `<contract_name>.metadata.json` file.
 This file provides information on how to pass data to the contract through the CLI, including:
@@ -289,7 +294,7 @@ hello.extra.json
 **[🔝 back to top](#toc)**
 
 ---
-## 😈 Daeomon mode
+## 😈 Daemon mode
 
 Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `--daemon` flag:
 
@@ -302,6 +307,9 @@ If a folder is provided with the `--daemon` flag and the list command, twinroom 
 ./out/bin/twinroom list  --daemon <folder>
 ```
 
+**[🔝 back to top](#toc)**
+
+---
 ## 📝 Site docs
 
 ```bash
