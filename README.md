@@ -12,7 +12,7 @@
   </a>
 </p>
 
-## ✨ Twinroom features
+## ✨ Twinroom features <!-- omit in toc -->
 
 Twinroom let you execute slangroom contracts in two ways:
 * By embedding them within the tool (compiled at build time)
@@ -27,12 +27,15 @@ the embedded ones will be kept and dynamic one will not be loaded.
 
 <div id="toc">
 
-### 🚩 Table of Contents
+### 🚩 Table of Contents <!-- omit in toc -->
 
 - [🎮 Quick start](#-quick-start)
 - [💾 Build](#-build)
+  - [✒️ Build with a custom name](#️-build-with-a-custom-name)
+  - [📁 Build with custom embedded files](#-build-with-custom-embedded-files)
 - [🐣 Embedded contracts as executable commands](#-embedded-contracts-as-executable-commands)
 - [🔮 Metadata file](#-metadata-file)
+  - [🤖 Structure of `metadata.json`](#-structure-of-metadatajson)
 - [🗃️ Additional data to Slangroom contrats](#️-additional-data-to-slangroom-contrats)
 - [😈 Daemon mode](#-daemon-mode)
 - [📝 Site docs](#-site-docs)
