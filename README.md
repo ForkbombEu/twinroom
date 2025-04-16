@@ -1,157 +1,189 @@
-# Twinroom
+<div align="center">
 
-Twinroom is a command-line interface (CLI) tool that enables you to execute [slangroom contracts](https://dyne.org/slangroom) written in [Zencode language](https://dev.zenroom.org).
+# Twinroom <!-- omit in toc -->
 
-Contracts can be both embedded within the tool (compiled at build time) and added dynamically from specified folders (specified at runtime).
+### Command-line interface (CLI) tool that enables you to execute [slangroom contracts](https://dyne.org/slangroom) written in [Zencode language](https://dev.zenroom.org). <!-- omit in toc -->
 
-It also provides an easy way to list and run currently configured contracts both as CLI commands or as HTTP API endpoints served in daemon mode.
+</div>
 
-When dynamic run-time contract files have the same path as built-in embedded contracts, then the contracts placed in the contracts folder at build time have priority and will override the rest.
+<p align="center">
+  <a href="https://www.forkbomb.solutions/">
+    <img src="https://forkbomb.solutions/wp-content/uploads/2023/05/forkbomb_logo_espressione.svg" width="170">
+  </a>
+</p>
 
-## Installation
+## ✨ Twinroom features <!-- omit in toc -->
 
-To use Twinroom, you need Go installed on your system. If you don't have Go installed, you can download it from [golang.org](https://golang.org/dl/).
+Twinroom let you execute slangroom contracts in two ways:
+* By embedding them within the tool (compiled at build time)
+* Dynamically chosen from certain folders (specified at runtime)
 
-Clone the repository:
+Moreover it also provides an easy way to list and run currently configured contracts both as CLI commands or as HTTP API endpoints served in [daemon mode](#-daeomon-mode).
+
+When embedded and dynamic loaded file will have the same path then
+the embedded ones will be kept and dynamic one will not be loaded.
+
+***
+
+<div id="toc">
+
+### 🚩 Table of Contents <!-- omit in toc -->
+
+- [🎮 Quick start](#-quick-start)
+- [💾 Build](#-build)
+  - [✒️ Build with a custom name](#️-build-with-a-custom-name)
+  - [📁 Build with custom embedded files](#-build-with-custom-embedded-files)
+- [🐣 Embedded contracts as executable commands](#-embedded-contracts-as-executable-commands)
+- [🔮 Metadata file](#-metadata-file)
+  - [🤖 Structure of `metadata.json`](#-structure-of-metadatajson)
+- [🗃️ Additional data to Slangroom contrats](#️-additional-data-to-slangroom-contrats)
+- [😈 Daemon mode](#-daemon-mode)
+- [📝 Site docs](#-site-docs)
+- [🐛 Troubleshooting \& debugging](#-troubleshooting--debugging)
+- [😍 Acknowledgements](#-acknowledgements)
+- [👤 Contributing](#-contributing)
+- [💼 License](#-license)
+</div>
+
+
+
+## 🎮 Quick start
+
+To start using `twinroom` run the following commands
+
+```sh
+# download the binary
+wget https://github.com/forkbombeu/twinroom/releases/latest/download/twinroom -O ~/.local/bin/twinroom && chmod +x ~/.local/bin/twinroom
+
+# list embedded contracts (that now are commands!)
+twinroom test --help
+# run an embedded contracts
+twinroom test hello
+
+# or list contracts from a folder
+git clone https://github.com/ForkbombEu/twinroom
+twinroom list twinroom/contracts/test
+```
+
+**[🔝 back to top](#toc)**
+
+---
+
+## 💾 Build
+
+To be able to build twinroom you need the following dependencies to be available in your PATH:
+* go@1.23.4
+* [slangroom-exec@latest](https://github.com/dyne/slangroom-exec)
+
+You can install them by hand or use [mise](https://mise.jdx.dev/) and run `mise install` in the root of the repository.
+
+You can build the executable following the steps:
 
 ```bash
-git clone https://github.com/ForkbombEu/Twinroom
+# clone the repository and enter in it
+git clone https://github.com/ForkbombEu/twinroom
+cd twinroom
+
+# if you decided to use mise now run: mise install
+
+# build the executable
+make build
 ```
 
-### Build the executable:
-You can build the executable using the provided Makefile.
+The binary will be found in `./out/bin/twinroom`.
 
-```bash
-make build BINARY_NAME=<custom_name>
+### ✒️ Build with a custom name
+
+The executable can also have a custom that can be specified at build time:
+```sh
+make build BINARY_NAME=<custom_bin_name>
 ```
-If you want to specify a custom binary name, you can do so by passing the BINARY_NAME variable.
 
-Replace <custom_name> with your desired binary name.
+### 📁 Build with custom embedded files
 
-### Embedding Files
-
-To embed files in your project, place them inside the `contracts` folder. Only contracts with the `.slang` extension will be considered for embedding.
-
-For example:
-```
-contracts/
-├── example1.slang  
-├── example2.slang  
-└── subfolder/  
-    └── nested.slang  
-```
-- Files such as `example1.slang` and `nested.slang` will be embedded.  
-- Other file types or folders not related to .slang files will be ignored during the embedding process, except for JSON files associated with the contracts.
-
-#### Customizing Embedded Folder
-If you want to embed files from one or more  different folders, you can specify custom directories using the JSON configuration file (`extra_dir.json`) when running the `make build` command.
-
-To specify custom folders for embedding files:
-1. Update `extra_dir.json` in the root of your project, with the paths to the directories that hold the contracts files. Example:
+By default Twinroom will consider only the files or folder inside the
+`contracts` folder, if you want to specify a different folder or use more
+then one you can do it by creating the `extra_dir.json` file that contains
+the path to the folders you want to embed, like:
 
 ```json
 {
-  "paths": [
-    "path/to/contracts_folder_1",
-    "path/to/contracts_folder_2"
-  ]
+    "paths": [
+        "path/to/first/folder/to/embed",
+        "path/to/second/folder/to/embed",
+        "as/many/path/as/you/want"
+    ]
 }
 ```
 
-2. Run the `make build` command. The directories specified in the `extra_dir.json` file will be used to replace the contents of the default `contracts` folder.
+The files that twinroom will embed are the `.slang` files, *i.e.* the
+contracts, and the JSON file associated with it (keys, data, conf, metadata, ...).
+All the other files will be ignored.
 
-### How It Works
+**[🔝 back to top](#toc)**
 
-- **Before building**: The `make build` command reads the `extra_dir.json` file to retrieve the paths to the directories containing the `.slang` files. The contents of the `contracts` folder will be replaced with the contents of the specified directories.
-  
-- **Building**: After the contents are replaced, the project will be built as usual. If no `extra_dir.json` file is found or if it does not specify any paths, the default `contracts` folder is used.
+---
+## 🐣 Embedded contracts as executable commands
 
-- **After building**: Once the build is complete, the `contracts` folder is restored to its original state.
+What happen to the contracts that you embed?
 
-## Usage
-
-### List Command
-
-To list all slangroom files in a specified directory, use the following command:
-
-```bash
-./out/bin/twinroom list <folder>
+Suppose that we build the executable without changing name, *i.e.* it is `twinroom`, and using the default folder as target.
+If we then run
+```sh
+./out/bin/twinroom --help
 ```
-If you want to list only embedded files in the contracts folder, simply run:
-
-```bash
-./out/bin/twinroom list
-```
-### Run a file
-
-To execute a specific slangroom file, use the following command:
-
-```bash
-./out/bin/twinroom <folder> <file>
+we will see that under available commands, there are
+```sh
+Available Commands:
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  list        List all contracts in the folder or list embedded contracts if no folder is specified
+  test        Commands for files in test
 ```
 
-If the file is embedded in the `contracts` folder , you can also run it directly by providing just the filename:
-
-
-```bash
-./out/bin/twinroom  <file>
+while *completion*, *help* and *list* are from twinroom source code **test** is the folder inside `contracts` that we have embedded, indeed if we run
+```sh
+./out/bin/twinroom test --help
+```
+we will have a new set of available commands
+```sh
+Available Commands:
+  broken          Execute the embedded contract broken
+  env             Example of a command that can use env variables
+  execute_zencode Execute the embedded contract execute_zencode
+  hello           Execute the embedded contract hello
+  introspection   Execute the embedded contract introspection
+  param           Example of a command with different arguments and options
+  read_from_path  read a file content from a path
+  stdin           read a file content from pipe stdin or if a filename given the content of the file
+  test            Execute the embedded contract test
+  withschema
+```
+If you look in the `./contracts/test` folder you will see that for each of this command there is a `*.slang` file and running one of this command
+will result in running the slangroom contract behind it, *e.g.*
+```sh
+./out/bin/twinroom test hello
+```
+will result in
+```json
+{"output":["Hello_from_embedded!"]}
 ```
 
-Or if it is in a subdir of `contracts`:
+In this case no input was required to run the `hello` command, but when an input from the user side is required this can be specified in the [metdata file](#-metadata-file).
 
-```bash
-./out/bin/twinroom  <subdir> <file>
-```
+**[🔝 back to top](#toc)**
 
-### Daemon Mode
+---
+## 🔮 Metadata file
 
-Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `--daemon` flag:
-
-```bash
-./out/bin/twinroom --daemon <folder> <file>
-```
-If a folder is provided with the `--daemon` flag and the list command, twinroom will list the available slangroom files via HTTP.
-
-```bash
-./out/bin/twinroom list  --daemon <folder>
-```
-### Adding Additional Data to Slangroom Contrats
-
-Twinroom supports loading additional JSON-based data for each slangroom file. This data can be provided through optional JSON files with specific names, stored alongside the main slangroom file in the same directory. The parameters can be:
-
-* `data`
-* `keys`
-* `extra`
-* `context`
-* `conf`
-
-To add data for a specific slangroom file, create JSON files following the naming convention below:
-
-```text
-<filename>.<param>.json
-```
-
-Where:
- * `<filename>` is the name of your contract file.
- * `<param>` is one of the parameters listed above.
-
-For example, if you have a file called `hello.slang`, you can provide additional data by creating files like:
-
-```text
-hello.data.json
-hello.keys.json
-hello.extra.json
-```
-
-### Command Arguments and Flags from `metadata.json`
-
-In addition to the above parameters, Twinroom allows you to define custom arguments, flags, and environment variables for each embedded slangroom file using a metadata.json file. This file provides information on how to pass data to the contract through the CLI, including:
+Twinroom allows you to define custom arguments, flags, and environment variables for each embedded slangroom file using a `<contract_name>.metadata.json` file.
+This file provides information on how to pass data to the contract through the CLI, including:
 
  * **Arguments**: Custom positional arguments for the command.
  * **Options**: Custom flags that can be passed to the command.
  * **Environment**: Key-value pairs of environment variables that are set dynamically when the command is executed.
 
- #### Structure of `metadata.json`
+ ### 🤖 Structure of `metadata.json`
 
 The metadata file is automatically read by Twinroom to generate appropriate arguments, flags, and environment variable settings when executing embedded contract files. A typical metadata.json structure might look like this:
 
@@ -205,13 +237,13 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
         },
     ],
         "environment": {
-        "VAR1": "value1",
-        "VAR2": "value2"
+            "VAR1": "value1",
+            "VAR2": "value2"
     }
 }
 ```
-#### Field Descriptions:
 
+where:
 * **description**: A text description of the command, explaining its purpose or behavior.
 * **arguments**:
     * ***name***: The name of the argument. Use angle brackets (`<arg>`) for required arguments and square brackets (`[arg]`) for optional ones.
@@ -230,36 +262,116 @@ The metadata file is automatically read by Twinroom to generate appropriate argu
 
 All values provided through arguments and flags are added to the slangroom input data as key-value pairs in the format `"flag_name": "value"`. If a parameter is present in both the CLI input and the corresponding `filename.data.json` file, the CLI input will take precedence, overwriting the value in the JSON file.
 
+**[🔝 back to top](#toc)**
 
-### Examples
+---
+## 🗃️ Additional data to Slangroom contrats
 
-List all contracts in the examples folder:
+Along with metadata, Twinroom supports loading additional JSON-based data for each slangroom file.
+This data can be provided through optional JSON files with specific names, stored alongside the main slangroom file in the same directory. The parameters can be:
 
-```bash
-./out/bin/twinroom list examples
+* `data`
+* `keys`
+* `extra`
+* `context`
+* `conf`
+
+To add data for a specific slangroom file, create JSON files following the naming convention below:
+
+```text
+<contract_name>.<param>.json
 ```
 
-Run a specific contract:
+Where:
+ * `<contract_name>` is the name of your contract file.
+ * `<param>` is one of the parameters listed above.
 
-```bash
-./out/bin/twinroom examples hello
+For example, if you have a file called `hello.slang`, you can provide additional data by creating files like:
+
+```text
+hello.data.json
+hello.keys.json
+hello.extra.json
 ```
 
-Run a contract with arguments and flag:
+**[🔝 back to top](#toc)**
+
+---
+## 😈 Daemon mode
+
+Twinroom can also run in daemon mode, exposing the slangroom files via an HTTP server. Use the `--daemon` flag:
 
 ```bash
-out/bin/twinroom test param username -n myname -d small -t 100
+./out/bin/twinroom --daemon <folder> <file>
 ```
-
-Start the HTTP server to expose contract:
+If a folder is provided with the `--daemon` flag and the list command, twinroom will list the available slangroom files via HTTP.
 
 ```bash
-./out/bin/twinroom --daemon examples hello
+./out/bin/twinroom list  --daemon <folder>
 ```
 
+**[🔝 back to top](#toc)**
 
+---
 ## 📝 Site docs
 
 ```bash
 go install golang.org/x/pkgsite/cmd/pkgsite@latest && pkgsite
 ```
+
+## 🐛 Troubleshooting & debugging
+
+Availabe bugs are reported via [GitHub issues](https://github.com/forkbombEu/twinroom/issues).
+
+**[🔝 back to top](#toc)**
+
+---
+## 😍 Acknowledgements
+
+Copyright © 2023-2025 by [Forkbomb BV](https://www.forkbomb.solutions/), Amsterdam
+
+**[🔝 back to top](#toc)**
+
+---
+## 👤 Contributing
+
+1.  🔀 [FORK IT](../../fork)
+2.  Create your feature branch `git checkout -b feature/branch`
+3.  Commit your changes `git commit -am 'feat: New feature\ncloses #398'`
+4.  Push to the branch `git push origin feature/branch`
+5.  Create a new Pull Request `gh pr create -f`
+6.  🙏 Thank you
+
+
+**[🔝 back to top](#toc)**
+
+---
+## 💼 License
+
+    Twinroom - Create CLI tools from slangroom contracts
+    Copyleft 🄯 2024-2025 The Forkbomb Company, Amsterdam
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+**[🔝 back to top](#toc)**
+
+<!--
+### How It Works
+
+- **Before building**: The `make build` command reads the `extra_dir.json` file to retrieve the paths to the directories containing the `.slang` files. The contents of the `contracts` folder will be replaced with the contents of the specified directories.
+
+- **Building**: After the contents are replaced, the project will be built as usual. If no `extra_dir.json` file is found or if it does not specify any paths, the default `contracts` folder is used.
+
+- **After building**: Once the build is complete, the `contracts` folder is restored to its original state.
+-->
