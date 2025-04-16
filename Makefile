@@ -9,6 +9,7 @@ VERSION?=0.0.0
 SERVICE_PORT?=3000
 DOCKER_REGISTRY?= #if set it should finished by /
 EXPORT_RESULT?=false # for CI please set EXPORT_RESULT to true
+MISE_SLANGROOM_EXEC=aqua:dyne/slangroom-exec
 
 GREEN  := $(shell tput -Txterm setaf 2)
 YELLOW := $(shell tput -Txterm setaf 3)
@@ -26,6 +27,10 @@ install-slangroom-exec:
 		exit 1; \
 	fi
 	@mise install
+	@if [ "$$(mise latest ${MISE_SLANGROOM_EXEC})" != "$$(mise latest -i ${MISE_SLANGROOM_EXEC})" ]; then \
+		echo "slangroom-exec is not up to date, updating..."; \
+		mise install --force ${MISE_SLANGROOM_EXEC}@latest; \
+	fi
 
 ## Build:
 
