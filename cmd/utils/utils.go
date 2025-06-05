@@ -390,6 +390,9 @@ func MapTypeToGoType(typeStr string, elemTypeStr string) reflect.Type {
 		elemType := MapTypeToGoType(elemTypeStr, "") // Recursively map element type
 		return reflect.SliceOf(elemType)
 	case "dictionary", "map", "object":
+		if elemTypeStr == "" || strings.ToLower(elemTypeStr) == "unknown" {
+			return reflect.TypeOf(map[string]interface{}{})
+		}
 		elemType := MapTypeToGoType(elemTypeStr, "")
 		return reflect.MapOf(reflect.TypeOf(""), elemType)
 	default:
@@ -525,7 +528,7 @@ func GenerateStruct(metadata CommandMetadata, introspectionData string) (interfa
 		} else {
 			fields = append(fields, reflect.StructField{
 				Name: title.String(name),
-				Type: MapTypeToGoType(arg.Type, "string"),
+				Type: MapTypeToGoType(arg.Type, "unknown"),
 				Tag:  reflect.StructTag(fmt.Sprintf(`json:"%s"`, name)),
 			})
 		}
