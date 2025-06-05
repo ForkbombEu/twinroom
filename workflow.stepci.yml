@@ -34,7 +34,7 @@ tests:
           check:
             status: 500
             body:
-              - match: .*ZenroomError.*
+              - match: .*Broken.*
 
       - name: POST /broken no body
         http:
@@ -46,7 +46,7 @@ tests:
           check:
             status: 500
             body:
-              - match: .*ZenroomError.*
+              - match: .*Broken.*
 
   introspection-schema-validation:
     steps:
