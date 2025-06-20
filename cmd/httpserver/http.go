@@ -17,6 +17,7 @@ type HTTPInput struct {
 	EmbeddedSubDir string
 	Path           string
 	FileName       string
+	Port           string
 }
 
 const openapiCSS = `
@@ -78,20 +79,19 @@ func StartHTTPServer(input HTTPInput) error {
 		}
 	})
 
-	// Set up a listener on port 3000 or an available port
-	port := "3000"
-	listener, err := net.Listen("tcp", ":"+port)
+	// Set up a listener on input port or an available port
+	listener, err := net.Listen("tcp", ":"+input.Port)
 	if err != nil {
 		listener, err = net.Listen("tcp", "localhost:0")
 		if err != nil {
 			return fmt.Errorf("error finding an open port: %v", err)
 		}
-		port = fmt.Sprintf("%d", listener.Addr().(*net.TCPAddr).Port)
+		input.Port = fmt.Sprintf("%d", listener.Addr().(*net.TCPAddr).Port)
 	}
 
 	// Print server information
-	fmt.Printf("Starting HTTP server on :%s\n", port)
-	fmt.Printf("Access the API documentation at: http://localhost:%s/slang\n", port)
+	fmt.Printf("Starting HTTP server on :%s\n", input.Port)
+	fmt.Printf("Access the API documentation at: http://localhost:%s/slang\n", input.Port)
 
 	// Start the HTTP server
 	server := &http.Server{

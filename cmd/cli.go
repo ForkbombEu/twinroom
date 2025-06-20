@@ -18,6 +18,7 @@ import (
 
 var contracts embed.FS
 var daemon bool
+var port string
 
 // runCmd is the base command when called without any subcommands.
 func Execute(embeddedFiles embed.FS) {
@@ -37,6 +38,7 @@ func init() {
 	// Add a flag for the daemon mode to the 'list' command
 	listCmd.Flags().BoolVarP(&daemon, "daemon", "", false, "Start HTTP server to list slangroom files")
 	runCmd.PersistentFlags().BoolVarP(&daemon, "daemon", "", false, "Start HTTP server to execute slangroom file")
+	runCmd.PersistentFlags().StringVarP(&port, "port", "", "8080", "Port to use when running in daemon mode")
 }
 
 // listCmd is a command that lists all slangroom files in the folder or list embedded files if no folder is specified.
@@ -100,6 +102,7 @@ func addEmbeddedFileCommands() {
 							EmbeddedFolder: &contracts,
 							EmbeddedPath:   "contracts",
 							EmbeddedSubDir: dirPath,
+							Port:           port,
 						}
 						if err := httpserver.StartHTTPServer(httpInput); err != nil {
 							log.Printf("Failed to start HTTP server: %v\n", err)
@@ -189,6 +192,7 @@ var runCmd = &cobra.Command{
 					BinaryName:     filepath.Base(os.Args[0]),
 					EmbeddedFolder: &contracts,
 					EmbeddedPath:   "contracts",
+					Port:           port,
 				}
 				if err := httpserver.StartHTTPServer(httpInput); err != nil {
 					log.Printf("Failed to start HTTP server: %v\n", err)
@@ -203,6 +207,7 @@ var runCmd = &cobra.Command{
 				httpInput := httpserver.HTTPInput{
 					BinaryName: filepath.Base(os.Args[0]),
 					Path:       filepath.Join(folder, filePath),
+					Port:       port,
 				}
 				if err := httpserver.StartHTTPServer(httpInput); err != nil {
 					log.Printf("Failed to start HTTP server: %v\n", err)
@@ -247,6 +252,7 @@ var runCmd = &cobra.Command{
 					httpInput := httpserver.HTTPInput{
 						BinaryName: filepath.Base(os.Args[0]),
 						Path:       file.Path,
+						Port:       port,
 					}
 					if err := httpserver.StartHTTPServer(httpInput); err != nil {
 						log.Printf("Failed to start HTTP server: %v\n", err)
@@ -318,6 +324,7 @@ func runFileCommand(file fouter.SlangFile, args []string, metadata *utils.Comman
 			EmbeddedFolder: &contracts,
 			EmbeddedPath:   "contracts",
 			FileName:       filename,
+			Port:           port,
 		}
 		if err := httpserver.StartHTTPServer(httpInput); err != nil {
 			log.Printf("Failed to start HTTP server: %v\n", err)
