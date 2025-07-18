@@ -217,6 +217,10 @@ func createSlangroomHandler(file fouter.SlangFile, dynamicStruct interface{}) ht
 func handleSlangroomRequest(file fouter.SlangFile, dynamicStruct interface{}, w http.ResponseWriter, r *http.Request) {
 	var input map[string]interface{}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 	// Handle POST request with JSON body
 	if r.Method == http.MethodPost {
 		if r.Body == nil || r.ContentLength == 0 {
