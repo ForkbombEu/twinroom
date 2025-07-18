@@ -53,7 +53,7 @@ func StartHTTPServer(input HTTPInput) error {
 	mainRouter.HandleFunc("/slang", func(w http.ResponseWriter, r *http.Request) {
 		host := r.Host
 		scheme := "http"
-		if r.TLS != nil {
+		if r.Header.Get("X-Forwarded-Proto") == "https" || r.TLS != nil {
 			scheme = "https"
 		}
 		apiDescriptionURL := fmt.Sprintf("%s://%s/documentation/json", scheme, host)
